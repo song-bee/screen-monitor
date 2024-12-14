@@ -10,9 +10,9 @@ import subprocess
 import threading
 import time
 
-MAX_NOT_ALLOWED_TIME = 2
-MAX_NOTIFICATION_TIMES = 2
-LOCK_INTERVAL_SECONDS = 5
+MAX_NOT_ALLOWED_TIME = 3
+MAX_NOTIFICATION_TIMES = 3
+LOCK_INTERVAL_SECONDS = 10
 
 class ScreenMonitor:
     def __init__(self):
@@ -138,20 +138,21 @@ class ScreenMonitor:
         """Main monitoring loop"""
         try:
             not_allowed_count = 0
-            is_final_warning = False
+            lock_warning_shown = False
             final_lock_timer_start = None
             
             while True:
                 # Wait for 1 second
                 time.sleep(1)
 
-                print(datetime.now(), not_allowed_count, self.warning_count, self.lock_timer_start, final_lock_timer_start)
+                print(not_allowed_count, lock_warning_shown, self.warning_count, self.lock_timer_start, final_lock_timer_start)
 
                 if final_lock_timer_start and time.time() - final_lock_timer_start >= LOCK_INTERVAL_SECONDS:
                     self.lock_screen()
 
                     # Reset everything after locking
                     not_allowed_count = 0
+                    lock_warning_shown = False
                     self.warning_count = 0
                     self.lock_timer_start = None
                     final_lock_timer_start = None
@@ -172,7 +173,9 @@ class ScreenMonitor:
                     not_allowed_count += 1
                     if not_allowed_count >= MAX_NOT_ALLOWED_TIME:
                         # Show warning
-                        self.show_warning()
+                        if not lock_warning_shown:
+                            self.show_warning()
+                            lock_warning_shown = True
 
                         if not final_lock_timer_start and self.warning_count >= MAX_NOTIFICATION_TIMES:
                             final_lock_timer_start = time.time()
@@ -184,11 +187,13 @@ class ScreenMonitor:
 
                             # Reset everything after locking
                             not_allowed_count = 0
+                            lock_warning_shown = False
                             self.warning_count = 0
                             self.lock_timer_start = None
                             final_lock_timer_start = None
                 else:
                     not_allowed_count = 0
+                    lock_warning_shown = False
                     self.lock_timer_start = None
                
                 # Delete the screenshot file
