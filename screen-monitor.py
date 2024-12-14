@@ -11,7 +11,8 @@ import threading
 import time
 
 MAX_NOT_ALLOWED_TIME = 2
-MAX_NOTIFICATION_TIMES = 3
+MAX_NOTIFICATION_TIMES = 2
+LOCK_INTERVAL_SECONDS = 5
 
 class ScreenMonitor:
     def __init__(self):
@@ -101,6 +102,15 @@ class ScreenMonitor:
         except Exception as e:
             print(f"Error locking screen: {e}")
 
+    def show_final_warning(self):
+        warning_msg = "Final warning: Screen will be locked in 30 seconds"
+
+        title = "Screen Lock Warning"
+        
+        self.notify(title,
+            "",
+            warning_msg)
+
     def show_warning(self):
         """Show warning notification and increment warning count"""
         self.warning_count += 1
@@ -128,51 +138,62 @@ class ScreenMonitor:
         """Main monitoring loop"""
         try:
             not_allowed_count = 0
+            is_final_warning = False
+            final_lock_timer_start = None
             
             while True:
+                # Wait for 1 second
+                time.sleep(1)
+
+                print(datetime.now(), not_allowed_count, self.warning_count, self.lock_timer_start, final_lock_timer_start)
+
+                if final_lock_timer_start and time.time() - final_lock_timer_start >= LOCK_INTERVAL_SECONDS:
+                    self.lock_screen()
+
+                    # Reset everything after locking
+                    not_allowed_count = 0
+                    self.warning_count = 0
+                    self.lock_timer_start = None
+                    final_lock_timer_start = None
+
+                    continue
+        
                 # Take screenshot
                 screenshot_path = self.take_screenshot()
 
                 if not screenshot_path:
-                    time.sleep(1)
                     continue
                 
                 # Extract text
                 current_text = self.extract_text(screenshot_path)
                 
-                print(datetime.now(), not_allowed_count)
                 # Check if content is allowed
                 if not self.is_allowed(current_text):
                     not_allowed_count += 1
                     if not_allowed_count >= MAX_NOT_ALLOWED_TIME:
                         # Show warning
                         self.show_warning()
-                        
-                        # Start lock timer if we've shown 5 or more warnings
-                        if self.warning_count >= MAX_NOTIFICATION_TIMES:
-                            if self.lock_timer_start is None:
-                                self.lock_timer_start = time.time()
-                            elif time.time() - self.lock_timer_start >= 10:
-                                self.lock_screen()
-                                # Reset everything after locking
-                                not_allowed_count = 0
-                                self.warning_count = 0
-                                self.lock_timer_start = None
-                        
-                        # Reset not_allowed_count to avoid multiple warnings
-                        not_allowed_count = 0
+
+                        if not final_lock_timer_start and self.warning_count >= MAX_NOTIFICATION_TIMES:
+                            final_lock_timer_start = time.time()
+
+                        if self.lock_timer_start is None:
+                            self.lock_timer_start = time.time()
+                        elif time.time() - self.lock_timer_start >= LOCK_INTERVAL_SECONDS:
+                            self.lock_screen()
+
+                            # Reset everything after locking
+                            not_allowed_count = 0
+                            self.warning_count = 0
+                            self.lock_timer_start = None
+                            final_lock_timer_start = None
                 else:
                     not_allowed_count = 0
-                    # Only reset lock timer if we haven't reached 5 warnings
-                    if self.warning_count < MAX_NOTIFICATION_TIMES:
-                        self.lock_timer_start = None
-                
+                    self.lock_timer_start = None
+               
                 # Delete the screenshot file
                 os.remove(screenshot_path)
                 
-                # Wait for 1 second
-                time.sleep(1)
-
         except KeyboardInterrupt:
             print("\nMonitoring stopped")
             self.cleanup_screenshots()
