@@ -56,11 +56,21 @@ class ScreenMonitor:
 
     def is_allowed(self, content_text):
         """Check if the content is allowed"""
-        if 'chrome-extension' in content_text:
-            return False
+        # Split text into lines
+        lines = content_text.split('\n')
         
-        if 'chrome' in content_text and 'extension' in content_text:
-            return False
+        # Check each line
+        for line in lines:
+            # Convert line to lowercase for case-insensitive comparison
+            line = line.lower()
+            
+            # Check if 'chrome' and 'extension' are on the same line
+            if 'chrome' in line and 'extension' in line:
+                return False
+            
+            # Check if '.com/' and 'game' are on the same line
+            if '.com/' in line and 'game' in line:
+                return False
         
         return True  # Return True if none of the disallowed conditions are met
 
@@ -142,8 +152,8 @@ class ScreenMonitor:
             final_lock_timer_start = None
             
             while True:
-                # Wait for 1 second
-                time.sleep(1)
+                # Wait for 5 second
+                time.sleep(5)
 
                 print(not_allowed_count, lock_warning_shown, self.warning_count, self.lock_timer_start, final_lock_timer_start)
 
