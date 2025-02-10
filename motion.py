@@ -112,8 +112,8 @@ def analyze_color_richness(frame):
     gray_percent = np.sum(gray_pixels) / total_pixels * 100
 
     # Print Debug Info
-    print(f"Red: {red_percent:.2f}%, Green: {green_percent:.2f}%, Blue: {blue_percent:.2f}%")
-    print(f"Black: {black_percent:.2f}%, White: {white_percent:.2f}%, Gray: {gray_percent:.2f}%")
+    # print(f"Red: {red_percent:.2f}%, Green: {green_percent:.2f}%, Blue: {blue_percent:.2f}%")
+    # print(f"Black: {black_percent:.2f}%, White: {white_percent:.2f}%, Gray: {gray_percent:.2f}%")
 
     # Compute raw color richness (-100 to 100 range)
     raw_color_richness = (red_percent + green_percent + blue_percent) - (black_percent + white_percent + gray_percent)
@@ -167,7 +167,7 @@ def update_plot(i):
     motion_level = calculate_motion(prev_frame, current_frame)
     color_richness = analyze_color_richness(current_frame)
 
-    print(f"Motion Level: {motion_level} | Color Richness: {color_richness}")  # Debugging output
+    print(f"Motion Level: {motion_level} | Color Richness: {color_richness:.2f}")  # Debugging output
 
     # Update the data history while keeping all deques the same length
     motion_log = math.log10(max(1, abs(motion_level)))
