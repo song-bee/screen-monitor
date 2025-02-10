@@ -75,16 +75,53 @@ def calculate_motion(prev_frame, current_frame):
     return np.sum(diff)  # Sum of pixel differences (motion level)
 
 def analyze_color_richness(frame):
-    """Analyzes color richness using variance of saturation and brightness."""
+    """
+    Analyzes the color richness of the screen by checking:
+    - Percentage of Red, Green, and Blue pixels
+    - Percentage of Black, White, and Gray pixels
+    - Returns a composite score based on color diversity
+    """
+
+    # Convert to HSV color space for better color analysis
     hsv_frame = cv2.cvtColor(frame, cv2.COLOR_RGB2HSV)
-    saturation = hsv_frame[:, :, 1]  # Extract saturation channel
-    value = hsv_frame[:, :, 2]  # Extract brightness channel
 
-    sat_variance = np.var(saturation)  # Color intensity variation
-    val_variance = np.var(value)  # Brightness variation
+    # Extract color channels
+    hue, saturation, value = cv2.split(hsv_frame)
 
-    color_richness = (sat_variance + val_variance) / 2
-    return color_richness
+    # Define thresholds for color and grayscale
+    color_threshold = 40  # Minimum saturation to consider a pixel "colored"
+    gray_threshold = 30   # Tolerance for gray classification
+
+    # Identify colored pixels
+    red_pixels = ((hue < 10) | (hue > 170)) & (saturation > color_threshold)
+    green_pixels = ((hue > 35) & (hue < 85)) & (saturation > color_threshold)
+    blue_pixels = ((hue > 85) & (hue < 150)) & (saturation > color_threshold)
+
+    # Identify grayscale pixels
+    black_pixels = (value < 50) & (saturation < gray_threshold)
+    white_pixels = (value > 200) & (saturation < gray_threshold)
+    gray_pixels = (saturation < gray_threshold) & ~black_pixels & ~white_pixels  # Not black/white but low saturation
+
+    # Compute percentages
+    total_pixels = frame.shape[0] * frame.shape[1]
+    red_percent = np.sum(red_pixels) / total_pixels * 100
+    green_percent = np.sum(green_pixels) / total_pixels * 100
+    blue_percent = np.sum(blue_pixels) / total_pixels * 100
+    black_percent = np.sum(black_pixels) / total_pixels * 100
+    white_percent = np.sum(white_pixels) / total_pixels * 100
+    gray_percent = np.sum(gray_pixels) / total_pixels * 100
+
+    # Print Debug Info
+    print(f"Red: {red_percent:.2f}%, Green: {green_percent:.2f}%, Blue: {blue_percent:.2f}%")
+    print(f"Black: {black_percent:.2f}%, White: {white_percent:.2f}%, Gray: {gray_percent:.2f}%")
+
+    # Compute raw color richness (-100 to 100 range)
+    raw_color_richness = (red_percent + green_percent + blue_percent) - (black_percent + white_percent + gray_percent)
+
+    # Normalize to [0, 1]
+    color_richness = (raw_color_richness + 100) / 200
+
+    return np.clip(color_richness, 0, 1)  # Ensure values stay in [0,1]
 
 def update_motion_state(motion_log, color_log):
     """
@@ -134,7 +171,7 @@ def update_plot(i):
 
     # Update the data history while keeping all deques the same length
     motion_log = math.log10(max(1, abs(motion_level)))
-    color_log = math.log10(max(1, abs(color_richness)))
+    color_log = abs(color_richness) * 10
 
     motion_data.append(motion_log)
     color_data.append(color_log)
