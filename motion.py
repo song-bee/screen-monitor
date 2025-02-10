@@ -6,9 +6,12 @@ import time
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 from collections import deque
-import AppKit
-import objc
-from PyObjCTools.AppHelper import runConsoleEventLoop
+import platform
+
+if platform.system() == 'Darwin':
+    import AppKit
+    import objc
+    from PyObjCTools.AppHelper import runConsoleEventLoop
 
 class StatusBarApp:
     """Creates a Mac status bar item to display motion & color richness."""
@@ -137,7 +140,9 @@ def update_plot(i):
     color_data.append(color_log)
 
     elapsed_time = update_motion_state(motion_log, color_log)
-    status_app.update_status(motion_log, color_log, elapsed_time)  # Update Mac status bar
+    
+    if platform.system() == 'Darwin':
+        status_app.update_status(motion_log, color_log, elapsed_time)  # Update Mac status bar
 
     time_labels.append(time_labels[-1] + (1 / FRAME_RATE))  # Maintain correct time scale
 
@@ -164,7 +169,8 @@ def update_plot(i):
 
     prev_frame = current_frame  # Store the last frame
 
-status_app = StatusBarApp()  # Initialize the status bar
+if platform.system() == 'Darwin':
+    status_app = StatusBarApp()  # Initialize the status bar
 
 # Initialize Matplotlib Figure
 fig, ax = plt.subplots()
@@ -172,4 +178,6 @@ ani = animation.FuncAnimation(fig, update_plot, interval=int(1000 / FRAME_RATE),
 
 # Show the live plot
 plt.show()
-runConsoleEventLoop()
+
+if platform.system() == 'Darwin':
+    runConsoleEventLoop()
