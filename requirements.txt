@@ -1,0 +1,9 @@
+Pillow>=10.0.0  # for PIL/ImageGrab
+plyer>=2.1.0  # for notifications
+pyautogui>=0.9.54  # for screenshot functionality
+pytesseract>=0.3.10  # for OCR
+opencv-python>=4.8.0  # for cv2
+numpy>=1.24.0  # for numerical operations
+matplotlib>=3.7.0  # for plotting
+pyobjc-framework-Cocoa>=9.0; platform_system == "Darwin"  # for macOS specific features (AppKit)
+pyobjc-framework-Quartz>=9.0; platform_system == "Darwin"  # for macOS screen capture
