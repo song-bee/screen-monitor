@@ -13,6 +13,8 @@ import time
 MAX_NOT_ALLOWED_TIME = 3
 MAX_NOTIFICATION_TIMES = 3
 LOCK_INTERVAL_SECONDS = 10
+LOCK_WARNING_TIME = 30
+LOCK_INTERVAL = 10
 
 class ScreenMonitor:
     def __init__(self):
@@ -212,6 +214,33 @@ class ScreenMonitor:
         except KeyboardInterrupt:
             print("\nMonitoring stopped")
             self.cleanup_screenshots()
+
+class ScreenLocker:
+    def __init__(self):
+        self.detection_count = 0
+        self.first_detection_time = None
+        self.warning_shown = False
+        
+    def lock_screen(self):
+        """Lock the screen based on the operating system"""
+        system = platform.system()
+        
+        try:
+            if system == "Darwin":  # macOS
+                subprocess.run(["pmset", "displaysleepnow"])
+            elif system == "Windows":
+                subprocess.run(["rundll32.exe", "user32.dll,LockWorkStation"])
+            elif system == "Linux":
+                subprocess.run(["xdg-screensaver", "lock"])
+            print("Screen locked")
+        except Exception as e:
+            print(f"Error locking screen: {e}")
+            
+    def reset(self):
+        """Reset all tracking variables"""
+        self.detection_count = 0
+        self.first_detection_time = None
+        self.warning_shown = False
 
 def main():
     # Check if tesseract is installed

@@ -7,6 +7,8 @@ import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 from collections import deque
 import platform
+import subprocess
+import os
 
 if platform.system() == 'Darwin':
     import AppKit
@@ -37,17 +39,36 @@ DETECTION_TIME = 30  # Seconds required to confirm video/game
 FRAME_RATE = 2  # Frames per second for capturing screen
 IGNORE_LOW_MOTION_TIME = 2  # Tolerated low-motion duration (seconds)
 RESET_TIME = 3  # Continuous low-motion duration before reset (seconds)
+MAX_NOT_ALLOWED_TIME = 3  # Maximum number of consecutive detections
+LOCK_WARNING_TIME = 30    # Seconds before locking after continuous detection
+LOCK_INTERVAL = 10       # Seconds between warning and actual lock
 
 # State Variables
 motion_start_time = None
 low_motion_start_time = None
 prev_frame = None
+detection_count = 0
+first_detection_time = None
+warning_shown = False
 
 # Data storage for past 30 seconds (ensures all deques have same length)
 max_data_points = DETECTION_TIME * FRAME_RATE  # Store last 30 sec of data
 motion_data = deque([0] * max_data_points, maxlen=max_data_points)
 color_data = deque([0] * max_data_points, maxlen=max_data_points)
 time_labels = deque(np.linspace(-DETECTION_TIME, 0, max_data_points), maxlen=max_data_points)
+
+def notify(title, subtitle, message):
+    system = platform.system()
+
+    if system == 'Darwin':
+        t = '-title {!r}'.format(title)
+        s = '-subtitle {!r}'.format(subtitle)
+        m = '-message {!r}'.format(message)
+        os.system('terminal-notifier {}'.format(' '.join([m, t, s])))
+    elif system == 'Linux':
+        pass
+    else:
+        pass
 
 def capture_screen():
     """Captures a screenshot, excluding the macOS status bar and menus."""
@@ -123,12 +144,33 @@ def analyze_color_richness(frame):
 
     return np.clip(color_richness, 0, 1)  # Ensure values stay in [0,1]
 
+def lock_screen():
+    """Lock the screen based on the operating system"""
+    system = platform.system()
+    try:
+        if system == "Darwin":  # macOS
+            subprocess.run(["pmset", "displaysleepnow"])
+        elif system == "Windows":
+            subprocess.run(["rundll32.exe", "user32.dll,LockWorkStation"])
+        elif system == "Linux":
+            subprocess.run(["xdg-screensaver", "lock"])
+        print("Screen locked")
+    except Exception as e:
+        print(f"Error locking screen: {e}")
+
+def reset_detection_state():
+    """Reset all detection tracking variables"""
+    global detection_count, first_detection_time, warning_shown
+    detection_count = 0
+    first_detection_time = None
+    warning_shown = False
+
 def update_motion_state(motion_log, color_log):
     """
     Tracks motion duration and determines if a game/video is detected.
     Uses log10 values and ignores temporary fluctuations under 3 seconds.
     """
-    global motion_start_time, low_motion_start_time
+    global motion_start_time, low_motion_start_time, detection_count, first_detection_time, warning_shown
 
     elapsed_time = 0
 
@@ -137,8 +179,38 @@ def update_motion_state(motion_log, color_log):
         if motion_start_time is None:
             motion_start_time = time.time()  # Start motion timer
             low_motion_start_time = None  # Reset low motion timer
+            
+            # Increment detection count and start timing if first detection
+            detection_count += 1
+            if first_detection_time is None:
+                first_detection_time = time.time()
 
         elapsed_time = time.time() - motion_start_time
+
+        # Check for continuous detection timeout
+        if first_detection_time and time.time() - first_detection_time >= LOCK_WARNING_TIME:
+            if not warning_shown:
+                print("⚠️ Warning: Screen will be locked in 10 seconds")
+                notify("Screen Lock Warning", 
+                      "Excessive Video/Game Activity", 
+                      "Screen will be locked in 10 seconds")
+                warning_shown = True
+            elif time.time() - first_detection_time >= LOCK_WARNING_TIME + LOCK_INTERVAL:
+                print("🔒 Locking screen due to extended video/game activity")
+                notify("Screen Locking", 
+                      "Extended Activity Timeout", 
+                      "Screen is being locked due to extended video/game activity")
+                lock_screen()
+                reset_detection_state()
+                
+        # Check for consecutive detection limit
+        if detection_count >= MAX_NOT_ALLOWED_TIME:
+            print("🔒 Locking screen due to repeated video/game activity")
+            notify("Screen Locking", 
+                  "Repeated Activity Detected", 
+                  "Screen is being locked due to repeated video/game activity")
+            lock_screen()
+            reset_detection_state()
 
         if elapsed_time >= DETECTION_TIME:
             print("🎮 Video or Game Detected (Motion + Color)!")
@@ -148,7 +220,7 @@ def update_motion_state(motion_log, color_log):
         # Motion/color richness dropped below threshold
         if motion_start_time is not None:
             if low_motion_start_time is None:
-                low_motion_start_time = time.time()  # Start low motion timer
+                low_motion_start_time = time.time()
             
             low_elapsed_time = time.time() - low_motion_start_time
 
@@ -156,6 +228,7 @@ def update_motion_state(motion_log, color_log):
                 print("❌ Motion Reset (No activity for too long)")
                 motion_start_time = None  # Reset detection state
                 low_motion_start_time = None  # Reset low-motion tracking
+                reset_detection_state()
 
     return elapsed_time
 
