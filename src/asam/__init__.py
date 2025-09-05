@@ -11,11 +11,11 @@ __description__ = "AI-powered screen activity monitoring for enhanced productivi
 from .config.manager import ConfigManager
 
 # Core imports for external use
-from .core.service import ASAMService
+from .core.service import AsamService
 from .models.detection import Detection
 
 __all__ = [
-    "ASAMService",
+    "AsamService",
     "ConfigManager",
     "Detection",
 ]

@@ -87,9 +87,13 @@ class AggregatedResult:
 class ScreenCapture:
     """Screen capture data for analysis"""
 
-    image_data: bytes
-    timestamp: datetime
-    screen_resolution: tuple[int, int]
+    image: Any  # PIL Image
+    image_array: Any  # numpy array
+    timestamp: float
+    width: int
+    height: int
+    capture_time: float
+    source: str
     active_window_title: Optional[str] = None
     active_process_name: Optional[str] = None
 

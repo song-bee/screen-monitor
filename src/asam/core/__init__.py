@@ -1,5 +1,5 @@
 """Core ASAM components"""
 
-from .service import ASAMService
+from .service import AsamService
 
-__all__ = ["ASAMService"]
+__all__ = ["AsamService"]
