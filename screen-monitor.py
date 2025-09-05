@@ -1,20 +1,20 @@
-from PIL import Image
-from datetime import datetime
-from plyer import notification
-
 import os
 import platform
-import pyautogui
-import pytesseract
 import subprocess
 import threading
 import time
+from datetime import datetime
+
+import pyautogui
+import pytesseract
+from PIL import Image
 
 MAX_NOT_ALLOWED_TIME = 3
 MAX_NOTIFICATION_TIMES = 3
 LOCK_INTERVAL_SECONDS = 10
 LOCK_WARNING_TIME = 30
 LOCK_INTERVAL = 10
+
 
 class ScreenMonitor:
     def __init__(self):
@@ -24,7 +24,7 @@ class ScreenMonitor:
         self.text_stable = True
         self.warning_count = 0
         self.lock_timer_start = None
-        
+
         # Create screenshots directory if it doesn't exist
         if not os.path.exists(self.screenshot_dir):
             os.makedirs(self.screenshot_dir)
@@ -33,7 +33,7 @@ class ScreenMonitor:
         """Take a screenshot and save it to file"""
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         filename = f"{self.screenshot_dir}/screenshot_{timestamp}.png"
-        
+
         # Take screenshot using pyautogui
         try:
             screenshot = pyautogui.screenshot()
@@ -43,7 +43,6 @@ class ScreenMonitor:
             print(f"Error screenshot: {e}")
             return None
 
- 
     def extract_text(self, image_path):
         """Extract text from image using tesseract"""
         try:
@@ -59,32 +58,32 @@ class ScreenMonitor:
     def is_allowed(self, content_text):
         """Check if the content is allowed"""
         # Split text into lines
-        lines = content_text.split('\n')
-        
+        lines = content_text.split("\n")
+
         # Check each line
         for line in lines:
             # Convert line to lowercase for case-insensitive comparison
             line = line.lower()
-            
+
             # Check if 'chrome' and 'extension' are on the same line
-            if 'chrome' in line and 'extension' in line:
+            if "chrome" in line and "extension" in line:
                 return False
-            
+
             # Check if '.com/' and 'game' are on the same line
-            if '.com/' in line and 'game' in line:
+            if ".com/" in line and "game" in line:
                 return False
-        
+
         return True  # Return True if none of the disallowed conditions are met
 
     def notify(self, title, subtitle, message):
         system = platform.system()
 
-        if system == 'Darwin':
-            t = '-title {!r}'.format(title)
-            s = '-subtitle {!r}'.format(subtitle)
-            m = '-message {!r}'.format(message)
-            os.system('terminal-notifier {}'.format(' '.join([m, t, s])))
-        elif system == 'Linux':
+        if system == "Darwin":
+            t = f"-title {title!r}"
+            s = f"-subtitle {subtitle!r}"
+            m = f"-message {message!r}"
+            os.system("terminal-notifier {}".format(" ".join([m, t, s])))
+        elif system == "Linux":
             pass
         else:
             pass
@@ -102,7 +101,7 @@ class ScreenMonitor:
     def lock_screen(self):
         """Lock the screen based on the operating system"""
         system = platform.system()
-        
+
         try:
             if system == "Darwin":  # macOS
                 subprocess.run(["pmset", "displaysleepnow"])
@@ -118,33 +117,29 @@ class ScreenMonitor:
         warning_msg = "Final warning: Screen will be locked in 30 seconds"
 
         title = "Screen Lock Warning"
-        
-        self.notify(title,
-            "",
-            warning_msg)
+
+        self.notify(title, "", warning_msg)
 
     def show_warning(self):
         """Show warning notification and increment warning count"""
         self.warning_count += 1
         warning_msg = (
-            f"Screen will be locked in 30 seconds after {MAX_NOTIFICATION_TIMES} warnings" 
+            f"Screen will be locked in 30 seconds after {MAX_NOTIFICATION_TIMES} warnings"
             if self.warning_count < MAX_NOTIFICATION_TIMES
             else "Final warning: Screen will be locked in 30 seconds"
         )
 
         title = f"Screen Lock Warning ({self.warning_count}/{MAX_NOTIFICATION_TIMES})"
-        
-        '''
+
+        """
         notification.notify(
             title=title
             message=warning_msg,
             timeout=10
         )
-        '''
+        """
 
-        self.notify(title,
-            "",
-            warning_msg)
+        self.notify(title, "", warning_msg)
 
     def monitor(self):
         """Main monitoring loop"""
@@ -152,14 +147,23 @@ class ScreenMonitor:
             not_allowed_count = 0
             lock_warning_shown = False
             final_lock_timer_start = None
-            
+
             while True:
                 # Wait for 5 second
                 time.sleep(5)
 
-                print(not_allowed_count, lock_warning_shown, self.warning_count, self.lock_timer_start, final_lock_timer_start)
+                print(
+                    not_allowed_count,
+                    lock_warning_shown,
+                    self.warning_count,
+                    self.lock_timer_start,
+                    final_lock_timer_start,
+                )
 
-                if final_lock_timer_start and time.time() - final_lock_timer_start >= LOCK_INTERVAL_SECONDS:
+                if (
+                    final_lock_timer_start
+                    and time.time() - final_lock_timer_start >= LOCK_INTERVAL_SECONDS
+                ):
                     self.lock_screen()
 
                     # Reset everything after locking
@@ -170,16 +174,16 @@ class ScreenMonitor:
                     final_lock_timer_start = None
 
                     continue
-        
+
                 # Take screenshot
                 screenshot_path = self.take_screenshot()
 
                 if not screenshot_path:
                     continue
-                
+
                 # Extract text
                 current_text = self.extract_text(screenshot_path)
-                
+
                 # Check if content is allowed
                 if not self.is_allowed(current_text):
                     not_allowed_count += 1
@@ -189,12 +193,17 @@ class ScreenMonitor:
                             self.show_warning()
                             lock_warning_shown = True
 
-                        if not final_lock_timer_start and self.warning_count >= MAX_NOTIFICATION_TIMES:
+                        if (
+                            not final_lock_timer_start
+                            and self.warning_count >= MAX_NOTIFICATION_TIMES
+                        ):
                             final_lock_timer_start = time.time()
 
                         if self.lock_timer_start is None:
                             self.lock_timer_start = time.time()
-                        elif time.time() - self.lock_timer_start >= LOCK_INTERVAL_SECONDS:
+                        elif (
+                            time.time() - self.lock_timer_start >= LOCK_INTERVAL_SECONDS
+                        ):
                             self.lock_screen()
 
                             # Reset everything after locking
@@ -207,24 +216,25 @@ class ScreenMonitor:
                     not_allowed_count = 0
                     lock_warning_shown = False
                     self.lock_timer_start = None
-               
+
                 # Delete the screenshot file
                 os.remove(screenshot_path)
-                
+
         except KeyboardInterrupt:
             print("\nMonitoring stopped")
             self.cleanup_screenshots()
+
 
 class ScreenLocker:
     def __init__(self):
         self.detection_count = 0
         self.first_detection_time = None
         self.warning_shown = False
-        
+
     def lock_screen(self):
         """Lock the screen based on the operating system"""
         system = platform.system()
-        
+
         try:
             if system == "Darwin":  # macOS
                 subprocess.run(["pmset", "displaysleepnow"])
@@ -235,30 +245,34 @@ class ScreenLocker:
             print("Screen locked")
         except Exception as e:
             print(f"Error locking screen: {e}")
-            
+
     def reset(self):
         """Reset all tracking variables"""
         self.detection_count = 0
         self.first_detection_time = None
         self.warning_shown = False
 
+
 def main():
     # Check if tesseract is installed
     try:
-        subprocess.run(['tesseract', '--version'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        subprocess.run(
+            ["tesseract", "--version"], stdout=subprocess.PIPE, stderr=subprocess.PIPE
+        )
     except FileNotFoundError:
         print("Error: Tesseract is not installed. Please install Tesseract OCR first.")
         return
 
     monitor = ScreenMonitor()
-    
+
     # Start cleanup thread
     cleanup_thread = threading.Thread(target=monitor.cleanup_screenshots)
     cleanup_thread.daemon = True
     cleanup_thread.start()
-    
+
     # Start monitoring
     monitor.monitor()
+
 
 if __name__ == "__main__":
     main()

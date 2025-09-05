@@ -127,7 +127,7 @@ class ASAMService:
         self.detection_engine = DetectionEngine()
         self.action_engine = ActionEngine()
         self.decision_engine = DecisionEngine()
-        
+
     async def start(self) -> None
     async def stop(self) -> None
     async def process_detection(self, detection: Detection) -> None
@@ -150,10 +150,10 @@ src/asam/detectors/
 class BaseDetector(ABC):
     @abstractmethod
     async def detect(self, input_data: Any) -> Detection
-    
+
     @abstractmethod
     def get_confidence(self) -> float
-    
+
     @abstractmethod
     def cleanup(self) -> None
 ```
@@ -172,13 +172,13 @@ src/asam/platform/
 class PlatformAdapter(ABC):
     @abstractmethod
     def lock_screen(self) -> bool
-    
+
     @abstractmethod
     def get_active_window(self) -> WindowInfo
-    
+
     @abstractmethod
     def install_service(self) -> bool
-    
+
     @abstractmethod
     def capture_audio(self) -> AudioStream
 ```
@@ -269,7 +269,7 @@ class ServiceProtection:
     def enable_protection(self) -> bool
     def check_integrity(self) -> bool
     def detect_tampering(self) -> List[TamperEvent]
-    
+
 class ExtensionMonitor:
     def monitor_extensions(self) -> None
     def detect_removal(self) -> bool
@@ -293,7 +293,7 @@ class BrowserBridge:
     async def send_message(self, message: dict) -> dict
     async def receive_message(self) -> dict
     def register_handler(self, handler: Callable) -> None
-    
+
 class LLMIntegration:
     async def classify_content(self, text: str) -> Classification
     async def analyze_batch(self, texts: List[str]) -> List[Classification]
@@ -319,11 +319,11 @@ class PerformanceMonitor:
     def start_timer(self, name: str) -> None
     def end_timer(self, name: str) -> float
     def get_metrics(self) -> Dict[str, float]
-    
+
 class AsyncUtils:
     @staticmethod
     async def run_with_timeout(coro, timeout: float)
-    
+
     @staticmethod
     async def gather_with_limit(tasks, limit: int)
 ```
@@ -441,7 +441,7 @@ class Detection:
     confidence: float
     timestamp: datetime
     metadata: Dict[str, Any]
-    
+
 @dataclass
 class SecurityEvent:
     event_type: str

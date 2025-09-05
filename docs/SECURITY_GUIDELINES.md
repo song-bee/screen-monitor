@@ -32,22 +32,22 @@ class ServiceProtector:
         self.watchdog_processes = []
         self.parent_process_id = os.getppid()
         self.service_executable = sys.executable
-        
+
     async def enable_protection(self):
         """Enable comprehensive service protection"""
         await self._create_watchdog_processes()
         await self._register_termination_handlers()
         await self._verify_parent_process()
         await self._enable_file_monitoring()
-        
+
     async def _create_watchdog_processes(self):
         """Create multiple watchdog processes for redundancy"""
         watchdog_count = 2  # Primary and backup watchdog
-        
+
         for i in range(watchdog_count):
             watchdog = await self._spawn_watchdog(f"watchdog_{i}")
             self.watchdog_processes.append(watchdog)
-            
+
     async def _spawn_watchdog(self, name: str) -> subprocess.Popen:
         """Spawn an independent watchdog process"""
         watchdog_script = f"""
@@ -64,7 +64,7 @@ WATCHDOG_NAME = '{name}'
 def restart_service():
     try:
         subprocess.Popen([
-            SERVICE_PATH, '--restart', 
+            SERVICE_PATH, '--restart',
             '--watchdog-restart', WATCHDOG_NAME
         ])
     except Exception as e:
@@ -77,22 +77,22 @@ while True:
         if not psutil.pid_exists(SERVICE_PID):
             restart_service()
             break
-            
+
         # Verify service integrity
         proc = psutil.Process(SERVICE_PID)
         if proc.exe() != SERVICE_PATH:
             # Process path changed - possible hijacking
             restart_service()
             break
-            
+
     except Exception as e:
         # Service process issues - restart
         restart_service()
         break
-        
+
     time.sleep(5)
 """
-        
+
         return subprocess.Popen([
             sys.executable, '-c', watchdog_script
         ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
@@ -108,17 +108,17 @@ class IntegrityChecker:
             'config.yaml',
             'detection_rules.json'
         ]
-        
+
     async def initialize_baseline(self):
         """Create integrity baseline for monitored files"""
         for file_path in self.monitored_files:
             if os.path.exists(file_path):
                 self.file_hashes[file_path] = self._calculate_hash(file_path)
-                
+
     async def verify_integrity(self) -> List[IntegrityViolation]:
         """Check file integrity against baseline"""
         violations = []
-        
+
         for file_path, expected_hash in self.file_hashes.items():
             if not os.path.exists(file_path):
                 violations.append(IntegrityViolation(
@@ -128,7 +128,7 @@ class IntegrityChecker:
                     actual_hash=None
                 ))
                 continue
-                
+
             actual_hash = self._calculate_hash(file_path)
             if actual_hash != expected_hash:
                 violations.append(IntegrityViolation(
@@ -137,9 +137,9 @@ class IntegrityChecker:
                     expected_hash=expected_hash,
                     actual_hash=actual_hash
                 ))
-                
+
         return violations
-        
+
     def _calculate_hash(self, file_path: str) -> str:
         """Calculate SHA-256 hash of file"""
         hasher = hashlib.sha256()
@@ -160,20 +160,20 @@ class ExtensionMonitor:
             'firefox': self._get_firefox_extension_path()
         }
         self.monitoring_active = False
-        
+
     async def start_monitoring(self):
         """Begin monitoring browser extensions"""
         self.monitoring_active = True
-        
+
         # Monitor extension files
         asyncio.create_task(self._monitor_extension_files())
-        
+
         # Monitor browser processes
         asyncio.create_task(self._monitor_browser_processes())
-        
+
         # Monitor native messaging
         asyncio.create_task(self._monitor_native_messaging())
-        
+
     async def _monitor_extension_files(self):
         """Monitor extension file integrity"""
         while self.monitoring_active:
@@ -185,9 +185,9 @@ class ExtensionMonitor:
                     manifest_path = os.path.join(path, 'manifest.json')
                     if not self._verify_manifest(manifest_path):
                         await self._handle_extension_tampering(browser, manifest_path)
-                        
+
             await asyncio.sleep(10)  # Check every 10 seconds
-            
+
     async def _handle_extension_removal(self, browser: str, path: str):
         """Handle detected extension removal"""
         security_event = SecurityEvent(
@@ -197,10 +197,10 @@ class ExtensionMonitor:
             severity="HIGH",
             timestamp=datetime.now()
         )
-        
+
         await self._log_security_event(security_event)
         await self._send_security_alert(security_event)
-        
+
         # Attempt to reinstall extension (if possible)
         await self._attempt_extension_recovery(browser, path)
 ```
@@ -214,13 +214,13 @@ class ExtensionSecurity {
         this.tamperDetected = false;
         this.securityToken = this.generateSecurityToken();
     }
-    
+
     initialize() {
         this.startHeartbeat();
         this.enableTamperDetection();
         this.validateEnvironment();
     }
-    
+
     startHeartbeat() {
         // Send regular heartbeat to native app
         this.heartbeatInterval = setInterval(() => {
@@ -234,11 +234,11 @@ class ExtensionSecurity {
             }
         }, 30000); // Every 30 seconds
     }
-    
+
     enableTamperDetection() {
         // Monitor for devtools
         let devtools = {open: false, orientation: null};
-        
+
         setInterval(() => {
             if (window.outerHeight - window.innerHeight > 160 ||
                 window.outerWidth - window.innerWidth > 160) {
@@ -250,18 +250,18 @@ class ExtensionSecurity {
                 devtools.open = false;
             }
         }, 500);
-        
+
         // Monitor for script injection
         const originalAppendChild = Node.prototype.appendChild;
         Node.prototype.appendChild = function(child) {
-            if (child.tagName === 'SCRIPT' && 
+            if (child.tagName === 'SCRIPT' &&
                 !child.src.startsWith('chrome-extension://')) {
                 this.handleTamperAttempt('script_injection');
             }
             return originalAppendChild.call(this, child);
         }.bind(this);
     }
-    
+
     handleTamperAttempt(type) {
         this.tamperDetected = true;
         this.sendNativeMessage({
@@ -271,7 +271,7 @@ class ExtensionSecurity {
             timestamp: Date.now()
         });
     }
-    
+
     calculateIntegrityHash() {
         // Calculate hash of critical extension files
         const manifest = chrome.runtime.getManifest();
@@ -287,12 +287,12 @@ class ExtensionSecurity {
 class DataProtection:
     def __init__(self):
         self.encryption_key = self._derive_encryption_key()
-        
+
     def _derive_encryption_key(self) -> bytes:
         """Derive encryption key from system-specific data"""
         # Use system-specific information for key derivation
         system_info = f"{platform.node()}{platform.machine()}{os.getuid()}"
-        
+
         # Derive key using PBKDF2
         kdf = PBKDF2HMAC(
             algorithm=hashes.SHA256(),
@@ -301,24 +301,24 @@ class DataProtection:
             iterations=100000,
             backend=default_backend()
         )
-        
+
         return kdf.derive(system_info.encode())
-        
+
     def encrypt_sensitive_data(self, data: dict) -> bytes:
         """Encrypt sensitive configuration data"""
         json_data = json.dumps(data, sort_keys=True)
-        
+
         # Use Fernet for symmetric encryption
         fernet = Fernet(base64.urlsafe_b64encode(self.encryption_key))
         encrypted_data = fernet.encrypt(json_data.encode())
-        
+
         return encrypted_data
-        
+
     def decrypt_sensitive_data(self, encrypted_data: bytes) -> dict:
         """Decrypt sensitive configuration data"""
         fernet = Fernet(base64.urlsafe_b64encode(self.encryption_key))
         decrypted_data = fernet.decrypt(encrypted_data)
-        
+
         return json.loads(decrypted_data.decode())
 ```
 
@@ -331,32 +331,32 @@ class PrivacyProtection:
             r'\b\d{4}\s?\d{4}\s?\d{4}\s?\d{4}\b',  # Credit card
             r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'  # Email
         ]
-        
+
     def sanitize_content(self, content: str) -> str:
         """Remove PII from content before analysis"""
         sanitized = content
-        
+
         for pattern in self.pii_patterns:
             sanitized = re.sub(pattern, '[REDACTED]', sanitized, flags=re.IGNORECASE)
-            
+
         return sanitized
-        
+
     def sanitize_logs(self, log_entry: dict) -> dict:
         """Sanitize log entries before storage"""
         sanitized_entry = log_entry.copy()
-        
+
         # Remove sensitive fields
         sensitive_fields = ['password', 'token', 'key', 'secret']
         for field in sensitive_fields:
             if field in sanitized_entry:
                 sanitized_entry[field] = '[REDACTED]'
-                
+
         # Sanitize text content
         if 'content' in sanitized_entry:
             sanitized_entry['content'] = self.sanitize_content(
                 sanitized_entry['content']
             )
-            
+
         return sanitized_entry
 ```
 
@@ -377,26 +377,26 @@ class PrivilegeManager:
                 'SeIncreaseQuotaPrivilege'
             ]
         }
-        
+
     async def request_minimal_permissions(self):
         """Request only required permissions"""
         platform_name = platform.system().lower()
-        
+
         if platform_name == 'darwin':
             await self._request_macos_permissions()
         elif platform_name == 'windows':
             await self._request_windows_permissions()
-            
+
     async def _request_macos_permissions(self):
         """Request macOS-specific permissions"""
         # Request screen recording permission
         if not self._has_screen_recording_permission():
             await self._prompt_screen_recording_permission()
-            
+
         # Request accessibility permission
         if not self._has_accessibility_permission():
             await self._prompt_accessibility_permission()
-            
+
     def _has_screen_recording_permission(self) -> bool:
         """Check if screen recording permission is granted"""
         try:
@@ -405,7 +405,7 @@ class PrivilegeManager:
             return True
         except Exception:
             return False
-            
+
     def drop_unnecessary_privileges(self):
         """Drop privileges that are no longer needed"""
         if hasattr(os, 'setuid') and os.getuid() == 0:
@@ -420,36 +420,36 @@ class PrivilegeManager:
 class NetworkSecurity:
     def __init__(self):
         self.tls_context = self._create_secure_tls_context()
-        
+
     def _create_secure_tls_context(self) -> ssl.SSLContext:
         """Create secure TLS context"""
         context = ssl.create_default_context(ssl.Purpose.SERVER_AUTH)
-        
+
         # Require TLS 1.3 minimum
         context.minimum_version = ssl.TLSVersion.TLSv1_3
         context.maximum_version = ssl.TLSVersion.TLSv1_3
-        
+
         # Disable weak ciphers
         context.set_ciphers('ECDHE+AESGCM:ECDHE+CHACHA20:DHE+AESGCM')
-        
+
         # Enable certificate verification
         context.check_hostname = True
         context.verify_mode = ssl.CERT_REQUIRED
-        
+
         return context
-        
+
     def verify_server_certificate(self, hostname: str, cert_chain: list) -> bool:
         """Verify server certificate with certificate pinning"""
         # Implement certificate pinning for known servers
         pinned_certificates = {
             'api.asam.com': 'sha256:expected_cert_hash_here'
         }
-        
+
         if hostname in pinned_certificates:
             cert_hash = hashlib.sha256(cert_chain[0]).hexdigest()
             expected_hash = pinned_certificates[hostname].replace('sha256:', '')
             return cert_hash == expected_hash
-            
+
         return True  # Allow other certificates through normal validation
 ```
 
@@ -466,14 +466,14 @@ class SecurityEventHandler:
             'CRITICAL': 10
         }
         self.recent_events = deque(maxlen=100)
-        
+
     async def handle_security_event(self, event: SecurityEvent):
         """Process security events and determine response"""
         self.recent_events.append(event)
-        
+
         # Calculate threat score
         threat_score = self._calculate_threat_score(event)
-        
+
         # Determine response based on threat level
         if threat_score >= self.threat_level_thresholds['CRITICAL']:
             await self._handle_critical_threat(event)
@@ -483,21 +483,21 @@ class SecurityEventHandler:
             await self._handle_medium_threat(event)
         else:
             await self._log_security_event(event)
-            
+
     async def _handle_critical_threat(self, event: SecurityEvent):
         """Handle critical security threats"""
         # Immediately lock screen
         await self.platform_adapter.lock_screen()
-        
+
         # Send emergency notification
         await self.notification_service.send_emergency_alert(
             "Critical security threat detected",
             f"Threat type: {event.threat_type}"
         )
-        
+
         # Log security event with high priority
         await self._log_security_event(event, priority='CRITICAL')
-        
+
         # Attempt to restart service with enhanced protection
         await self._restart_with_enhanced_protection()
 ```
@@ -529,7 +529,7 @@ class SecurityEventHandler:
 class SecurityAuditor:
     def __init__(self):
         self.audit_log = SecureLogger('security_audit')
-        
+
     async def log_security_event(self, event: SecurityEvent):
         """Log security events for audit purposes"""
         audit_entry = {
@@ -541,13 +541,13 @@ class SecurityAuditor:
             'response_actions': event.response_actions,
             'system_state': await self._capture_system_state()
         }
-        
+
         await self.audit_log.log_entry(audit_entry)
-        
+
     async def generate_security_report(self, period: str) -> SecurityReport:
         """Generate security report for specified period"""
         events = await self.audit_log.get_events(period)
-        
+
         return SecurityReport(
             period=period,
             total_events=len(events),

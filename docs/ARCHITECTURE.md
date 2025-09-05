@@ -69,7 +69,7 @@ asam_service/
 
 ##### 2.2.1 Text Detection Pipeline
 ```
-Browser Content → Extension Analysis → Content Extraction → 
+Browser Content → Extension Analysis → Content Extraction →
 LLM Classification → Confidence Scoring → Decision Engine
 ```
 
@@ -81,7 +81,7 @@ LLM Classification → Confidence Scoring → Decision Engine
 
 ##### 2.2.2 Visual Detection Pipeline
 ```
-Screen Capture → Region Analysis → Motion Detection → 
+Screen Capture → Region Analysis → Motion Detection →
 Object Classification → Pattern Recognition → Confidence Scoring
 ```
 
@@ -93,7 +93,7 @@ Object Classification → Pattern Recognition → Confidence Scoring
 
 ##### 2.2.3 Audio Detection Pipeline
 ```
-Audio Capture → Frequency Analysis → Pattern Recognition → 
+Audio Capture → Frequency Analysis → Pattern Recognition →
 Content Classification → Confidence Scoring
 ```
 
@@ -125,16 +125,16 @@ Content Classification → Confidence Scoring
 ```python
 class PlatformAdapter:
     """Abstract base for platform-specific operations"""
-    
+
     @abstractmethod
     def lock_screen(self) -> bool
-    
+
     @abstractmethod
     def get_active_window(self) -> WindowInfo
-    
+
     @abstractmethod
     def install_service(self) -> bool
-    
+
     @abstractmethod
     def get_system_audio(self) -> AudioStream
 
@@ -142,7 +142,7 @@ class PlatformAdapter:
 class MacOSAdapter(PlatformAdapter):
     def lock_screen(self):
         subprocess.run(["pmset", "displaysleepnow"])
-        
+
 class WindowsAdapter(PlatformAdapter):
     def lock_screen(self):
         subprocess.run(["rundll32.exe", "user32.dll,LockWorkStation"])
@@ -184,34 +184,34 @@ class ASAMWindowsService(win32serviceutil.ServiceFramework):
 detection:
   confidence_threshold: 0.75
   analysis_interval: 5  # seconds
-  
+
   text_detection:
     llm_model: "llama3.2:3b"
     max_tokens: 1000
     patterns:
       entertainment: ["chapter", "novel", "episode"]
-      
+
   visual_detection:
     motion_threshold: 6.0
     color_threshold: 3.0
     ignore_regions: [
       {x: 0, y: 0, w: 100, h: 50}  # Status bar
     ]
-    
+
   audio_detection:
     enabled: true
     sample_rate: 22050
-    
+
 actions:
   primary_action: "lock_screen"
   warning_delay: 10  # seconds
   notification_enabled: true
-  
+
 security:
   service_protection: true
   extension_monitoring: true
   tamper_alerts: true
-  
+
 logging:
   level: "INFO"
   retention_days: 30
@@ -259,13 +259,13 @@ class SecurityManager:
         self.watchdog = ProcessWatchdog()
         self.tamper_detector = TamperDetector()
         self.privilege_manager = PrivilegeManager()
-        
+
     def protect_service(self):
         """Implement anti-tampering measures"""
         # Register for process termination events
         # Monitor service file integrity
         # Check parent process legitimacy
-        
+
     def monitor_extensions(self):
         """Watch for browser extension removal"""
         # Check extension manifest files
@@ -332,7 +332,7 @@ class ResourceManager:
         self.cpu_monitor = CPUMonitor(threshold=5.0)
         self.memory_monitor = MemoryMonitor(threshold=500)  # MB
         self.detection_scheduler = AdaptiveScheduler()
-        
+
     def adjust_detection_frequency(self, system_load):
         """Dynamically adjust detection based on system resources"""
         if system_load > 0.8:

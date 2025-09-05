@@ -19,7 +19,7 @@ ASAM is a sophisticated, privacy-first screen monitoring system that uses local 
 
 ### 🛡️ **Advanced Security**
 - **Tamper Protection**: Admin/root privileges required to stop the service
-- **Extension Monitoring**: Detects browser extension removal within 10 seconds  
+- **Extension Monitoring**: Detects browser extension removal within 10 seconds
 - **File Integrity**: Monitors service files for unauthorized modifications
 - **Watchdog Protection**: Multiple processes ensure service reliability
 
@@ -144,19 +144,19 @@ ASAM employs a sophisticated multi-layer detection system:
 detection:
   confidence_threshold: 0.75    # 75% confidence required for action
   analysis_interval: 5          # Check every 5 seconds
-  
+
   text_detection:
     enabled: true
     llm_model: "llama3.2:3b"
-    
+
   visual_detection:
     enabled: true
     motion_threshold: 6.0
-    
+
 actions:
   primary_action: "lock_screen"  # lock_screen, notify, log_only
   warning_delay: 10             # Seconds before action
-  
+
 security:
   service_protection: true      # Prevent unauthorized termination
   extension_monitoring: true    # Monitor browser extensions
@@ -269,7 +269,7 @@ We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) f
 
 ### Complete Documentation Set
 - **[📋 Requirements](docs/REQUIREMENTS.md)**: Detailed project requirements
-- **[🏗️ Architecture](docs/ARCHITECTURE.md)**: System architecture and design  
+- **[🏗️ Architecture](docs/ARCHITECTURE.md)**: System architecture and design
 - **[⚙️ Technology Stack](docs/TECHNOLOGY_STACK.md)**: Technical specifications
 - **[📁 Solution Structure](docs/SOLUTION_STRUCTURE.md)**: Code organization
 - **[🚀 Implementation Plan](docs/IMPLEMENTATION_PLAN.md)**: Development roadmap

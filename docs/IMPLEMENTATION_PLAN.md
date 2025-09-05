@@ -52,14 +52,14 @@ class ASAMService:
         self.platform = PlatformFactory.create()
         self.detection_engine = None
         self.running = False
-    
+
     async def start(self):
         """Start the ASAM service"""
         self.logger.info("Starting ASAM service")
         await self._initialize_components()
         self.running = True
         await self._main_loop()
-    
+
     async def _initialize_components(self):
         """Initialize all service components"""
         self.detection_engine = DetectionEngine(self.config)
@@ -107,10 +107,10 @@ class Detection:
     timestamp: datetime
     source_info: str
     metadata: Dict[str, Any]
-    
+
     def to_dict(self) -> dict:
         return asdict(self)
-    
+
     @classmethod
     def from_dict(cls, data: dict) -> 'Detection':
         return cls(**data)
@@ -131,20 +131,20 @@ class LLMIntegration:
         self.model_name = model_name
         self.ollama_client = OllamaClient()
         self.cache = LRUCache(maxsize=1000)
-    
+
     async def classify_content(self, text: str, url: str = None) -> Classification:
         """Classify content using local LLM"""
         cache_key = hashlib.md5(text[:500].encode()).hexdigest()
-        
+
         if cache_key in self.cache:
             return self.cache[cache_key]
-        
+
         prompt = self._build_classification_prompt(text, url)
         result = await self.ollama_client.generate(
             model=self.model_name,
             prompt=prompt
         )
-        
+
         classification = self._parse_llm_response(result)
         self.cache[cache_key] = classification
         return classification
@@ -164,12 +164,12 @@ class BaseDetector(ABC):
     def __init__(self, config: Dict[str, Any]):
         self.config = config
         self.logger = get_logger(self.__class__.__name__)
-    
+
     @abstractmethod
     async def detect(self, input_data: Any) -> Detection:
         """Perform detection analysis"""
         pass
-    
+
     @abstractmethod
     def get_confidence_threshold(self) -> float:
         """Get minimum confidence threshold"""
@@ -179,7 +179,7 @@ class DetectionEngine:
     def __init__(self, config: Config):
         self.detectors = []
         self.decision_engine = DecisionEngine(config)
-        
+
     async def process_detection_cycle(self):
         """Run one detection cycle across all detectors"""
         detections = []
@@ -190,7 +190,7 @@ class DetectionEngine:
                     detections.append(detection)
             except Exception as e:
                 self.logger.error(f"Detector {detector.__class__.__name__} failed: {e}")
-        
+
         if detections:
             decision = await self.decision_engine.make_decision(detections)
             await self._execute_decision(decision)
@@ -231,7 +231,7 @@ class ContentAnalyzer {
         this.analysisTimer = null;
         this.lastContent = '';
     }
-    
+
     startMonitoring() {
         this.observer = new MutationObserver(() => {
             clearTimeout(this.analysisTimer);
@@ -239,16 +239,16 @@ class ContentAnalyzer {
                 this.analyzeContent();
             }, 2000);
         });
-        
+
         this.observer.observe(document.body, {
             childList: true,
             subtree: true
         });
-        
+
         // Initial analysis
         this.analyzeContent();
     }
-    
+
     analyzeContent() {
         const content = this.extractMainContent();
         if (this.isSignificantChange(content)) {
@@ -270,7 +270,7 @@ class BrowserBridge:
     def __init__(self):
         self.message_handlers = {}
         self.running = False
-    
+
     async def start_native_messaging(self):
         """Start native messaging server"""
         while self.running:
@@ -280,7 +280,7 @@ class BrowserBridge:
                 await self._send_message(response)
             except Exception as e:
                 self.logger.error(f"Native messaging error: {e}")
-    
+
     async def _process_message(self, message: dict) -> dict:
         """Process message from browser extension"""
         msg_type = message.get('type')
@@ -306,27 +306,27 @@ class VisionDetector(BaseDetector):
         self.motion_threshold = config.get('motion_threshold', 6.0)
         self.color_threshold = config.get('color_threshold', 3.0)
         self.yolo_model = self._load_yolo_model()
-    
+
     async def detect(self, input_data: Any) -> Detection:
         """Detect games/videos through computer vision"""
         screenshot = self._capture_screen()
-        
+
         # Motion analysis
         motion_score = self._calculate_motion(screenshot)
-        
+
         # Color richness analysis
         color_score = self._analyze_color_richness(screenshot)
-        
+
         # Object detection (games, video players)
         objects = await self._detect_objects(screenshot)
-        
+
         # Filter out advertisements
         filtered_objects = self._filter_advertisements(objects)
-        
+
         confidence = self._calculate_vision_confidence(
             motion_score, color_score, filtered_objects
         )
-        
+
         return Detection(
             detector_type="vision",
             content_type=self._classify_content_type(objects),
@@ -357,22 +357,22 @@ class AudioDetector(BaseDetector):
         self.sample_rate = 22050
         self.audio_stream = None
         self.classifier_model = self._load_audio_model()
-    
+
     async def detect(self, input_data: Any) -> Detection:
         """Detect entertainment content through audio analysis"""
         audio_data = await self._capture_audio_sample()
-        
+
         # Frequency analysis
         frequencies = self._perform_fft(audio_data)
-        
+
         # Extract audio features
         features = self._extract_audio_features(audio_data)
-        
+
         # Classify audio type
         classification = await self._classify_audio(features)
-        
+
         confidence = classification.get('confidence', 0.0)
-        
+
         return Detection(
             detector_type="audio",
             content_type=classification.get('type', 'unknown'),
@@ -402,27 +402,27 @@ class NetworkDetector(BaseDetector):
         super().__init__(config)
         self.streaming_domains = self._load_streaming_domains()
         self.traffic_monitor = TrafficMonitor()
-    
+
     async def detect(self, input_data: Any) -> Detection:
         """Detect streaming and entertainment through network analysis"""
         # Monitor network connections
         connections = self._get_active_connections()
-        
+
         # Analyze traffic patterns
         traffic_data = await self.traffic_monitor.analyze_recent_traffic()
-        
+
         # Detect streaming services
         streaming_activity = self._detect_streaming_activity(
             connections, traffic_data
         )
-        
+
         # Check for video streaming on other devices
         device_activity = await self._scan_network_devices()
-        
+
         confidence = self._calculate_network_confidence(
             streaming_activity, device_activity
         )
-        
+
         return Detection(
             detector_type="network",
             content_type="streaming" if streaming_activity else "normal",
@@ -455,14 +455,14 @@ class SecurityManager:
         self.extension_monitor = ExtensionMonitor()
         self.integrity_checker = IntegrityChecker()
         self.tamper_detector = TamperDetector()
-    
+
     async def enable_full_protection(self):
         """Enable all security measures"""
         await self.service_protector.protect_service()
         await self.extension_monitor.start_monitoring()
         await self.integrity_checker.verify_files()
         await self.tamper_detector.start_detection()
-    
+
     async def handle_security_event(self, event: SecurityEvent):
         """Handle detected security threats"""
         if event.severity == "CRITICAL":
@@ -476,27 +476,27 @@ class ServiceProtector:
     def __init__(self):
         self.watchdog_process = None
         self.file_hashes = {}
-    
+
     async def protect_service(self):
         """Implement service protection measures"""
         # Create watchdog process
         self.watchdog_process = await self._create_watchdog()
-        
+
         # Monitor service file integrity
         await self._monitor_file_integrity()
-        
+
         # Register for system events
         await self._register_system_event_handlers()
-    
+
     async def _create_watchdog(self):
         """Create a separate watchdog process"""
         watchdog_script = """
         import time
         import psutil
         import subprocess
-        
+
         SERVICE_PID = {pid}
-        
+
         while True:
             if not psutil.pid_exists(SERVICE_PID):
                 # Service terminated unexpectedly - restart
@@ -504,7 +504,7 @@ class ServiceProtector:
                 break
             time.sleep(5)
         """.format(pid=os.getpid(), service_path=sys.executable)
-        
+
         return subprocess.Popen([sys.executable, '-c', watchdog_script])
 ```
 
@@ -523,17 +523,17 @@ class DecisionEngine:
         self.confidence_threshold = config.get('confidence_threshold', 0.75)
         self.action_engine = ActionEngine(config)
         self.warning_system = WarningSystem(config)
-    
+
     async def make_decision(self, detections: List[Detection]) -> Decision:
         """Make decision based on multiple detection signals"""
         # Aggregate confidence scores
         aggregated_confidence = self._aggregate_confidence(detections)
-        
+
         # Apply contextual rules
         adjusted_confidence = self._apply_contextual_rules(
             aggregated_confidence, detections
         )
-        
+
         # Determine action
         if adjusted_confidence >= self.confidence_threshold:
             action_type = self._determine_action_type(adjusted_confidence)
@@ -543,14 +543,14 @@ class DecisionEngine:
                 reasoning=self._generate_reasoning(detections),
                 timestamp=datetime.now()
             )
-        
+
         return Decision(action="none", confidence=adjusted_confidence)
-    
+
     def _aggregate_confidence(self, detections: List[Detection]) -> float:
         """Aggregate confidence scores from multiple detectors"""
         if not detections:
             return 0.0
-        
+
         # Weighted average based on detector reliability
         weights = {
             'text': 0.4,    # LLM analysis is highly reliable
@@ -558,17 +558,17 @@ class DecisionEngine:
             'audio': 0.2,   # Audio analysis is supplementary
             'network': 0.1  # Network analysis provides context
         }
-        
+
         weighted_sum = sum(
             detection.confidence * weights.get(detection.detector_type, 0.1)
             for detection in detections
         )
-        
+
         total_weight = sum(
             weights.get(detection.detector_type, 0.1)
             for detection in detections
         )
-        
+
         return weighted_sum / total_weight if total_weight > 0 else 0.0
 ```
 
@@ -589,7 +589,7 @@ class TestDetectionEngine:
     def detection_engine(self):
         config = TestConfig()
         return DetectionEngine(config)
-    
+
     @pytest.mark.asyncio
     async def test_text_detection_accuracy(self, detection_engine):
         """Test text detection with known entertainment content"""
@@ -598,27 +598,27 @@ class TestDetectionEngine:
             ("API Documentation for Flask Framework", "work", 0.1),
             ("Latest Celebrity News and Gossip", "entertainment", 0.8)
         ]
-        
+
         for content, expected_type, min_confidence in test_cases:
             detection = await detection_engine.text_detector.detect(content)
             assert detection.content_type == expected_type
             assert detection.confidence >= min_confidence
-    
+
     @pytest.mark.asyncio
     async def test_performance_benchmarks(self, detection_engine):
         """Test system performance under load"""
         start_time = time.time()
-        
+
         # Run 100 detection cycles
         for _ in range(100):
             await detection_engine.process_detection_cycle()
-        
+
         duration = time.time() - start_time
         avg_cycle_time = duration / 100
-        
+
         # Should complete detection cycle in under 3 seconds
         assert avg_cycle_time < 3.0
-        
+
         # Memory usage should remain stable
         memory_usage = psutil.Process().memory_info().rss / 1024 / 1024
         assert memory_usage < 500  # Less than 500MB
@@ -639,7 +639,7 @@ class DeploymentManager:
         self.platform = platform
         self.build_dir = Path("build")
         self.dist_dir = Path("dist")
-    
+
     async def create_deployment_package(self):
         """Create platform-specific deployment package"""
         if self.platform == "macos":
@@ -648,7 +648,7 @@ class DeploymentManager:
             await self._create_windows_service()
         elif self.platform == "linux":
             await self._create_linux_package()
-    
+
     async def _create_macos_app(self):
         """Create macOS application bundle"""
         # Create .app bundle structure
@@ -656,14 +656,14 @@ class DeploymentManager:
         contents_dir = app_bundle / "Contents"
         macos_dir = contents_dir / "MacOS"
         resources_dir = contents_dir / "Resources"
-        
+
         # Create directories
         for directory in [macos_dir, resources_dir]:
             directory.mkdir(parents=True, exist_ok=True)
-        
+
         # Copy executable
         shutil.copy2("dist/asam-service", macos_dir / "ASAM")
-        
+
         # Create Info.plist
         info_plist = {
             'CFBundleExecutable': 'ASAM',
@@ -671,7 +671,7 @@ class DeploymentManager:
             'CFBundleName': 'Advanced Screen Activity Monitor',
             'CFBundleVersion': '1.0.0'
         }
-        
+
         with open(contents_dir / "Info.plist", 'w') as f:
             plist.dump(info_plist, f)
 ```
@@ -707,9 +707,9 @@ Reliability Metrics:
 #### Risk Mitigation:
 ```
 High-Risk Items:
-1. LLM Performance: 
+1. LLM Performance:
    - Mitigation: Test multiple models, implement fallback options
-   
+
 2. Browser Extension Approval:
    - Mitigation: Start submission process early, prepare alternative distribution
 
@@ -729,7 +729,7 @@ High-Risk Items:
 - **DevOps Engineer**: CI/CD, deployment, infrastructure
 
 #### Hardware Requirements:
-- **Development Machines**: 
+- **Development Machines**:
   - macOS: MacBook Pro M2/M3 with 16GB RAM
   - Windows: Windows 11 machine with 16GB RAM
   - Testing: Various hardware configurations for compatibility

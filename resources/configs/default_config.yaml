@@ -1,0 +1,90 @@
+# ASAM Default Configuration
+# This file contains the default settings for the Advanced Screen Activity Monitor
+
+detection:
+  confidence_threshold: 0.75  # Confidence level required for action (0.0-1.0)
+  analysis_interval: 5        # Seconds between detection cycles
+
+  text_detection:
+    enabled: true
+    llm_model: "llama3.2:3b"   # Local LLM model for content analysis
+    max_tokens: 1000           # Maximum tokens to analyze
+    cache_results: true        # Cache LLM results for performance
+    patterns:
+      entertainment:
+        - "chapter"
+        - "episode"
+        - "novel"
+        - "story"
+        - "game"
+      social_media:
+        - "post"
+        - "comment"
+        - "like"
+        - "share"
+        - "tweet"
+
+  visual_detection:
+    enabled: true
+    motion_threshold: 6.0      # Log10 motion detection threshold
+    color_threshold: 3.0       # Color richness threshold
+    capture_interval: 2        # Seconds between screen captures
+    ignore_regions:            # Screen regions to ignore (status bars, etc.)
+      - {x: 0, y: 0, w: 100, h: 50}
+
+  audio_detection:
+    enabled: true
+    sample_rate: 22050         # Audio sample rate
+    analysis_window: 5         # Seconds of audio to analyze
+
+  process_detection:
+    enabled: true
+    monitored_processes:       # Known entertainment applications
+      - "steam.exe"
+      - "chrome.exe"
+      - "firefox.exe"
+      - "vlc.exe"
+      - "obs64.exe"
+
+  network_detection:
+    enabled: true
+    streaming_domains:         # Known streaming services
+      - "youtube.com"
+      - "netflix.com"
+      - "twitch.tv"
+      - "hulu.com"
+      - "disney.com"
+
+actions:
+  primary_action: "lock_screen"  # Action to take: lock_screen, notify, log_only
+  warning_delay: 10             # Seconds to wait before taking action
+  notification_enabled: true    # Show notifications to user
+  max_warnings: 3              # Maximum warnings before action
+
+security:
+  service_protection: true      # Enable anti-tamper protection
+  extension_monitoring: true    # Monitor browser extensions
+  tamper_alerts: true          # Send alerts on tamper attempts
+  file_integrity_checks: true  # Monitor service file integrity
+
+logging:
+  level: "INFO"                # Log level: DEBUG, INFO, WARNING, ERROR, CRITICAL
+  file_enabled: true           # Write logs to file
+  console_enabled: true        # Write logs to console
+  retention_days: 30           # Days to keep log files
+  max_file_size: 10            # Maximum log file size in MB
+
+database:
+  path: "~/.asam/asam.db"      # SQLite database path
+  backup_enabled: true         # Enable automatic backups
+  backup_interval: 24          # Hours between backups
+
+performance:
+  cpu_limit: 5.0               # Maximum CPU usage percentage
+  memory_limit: 500            # Maximum memory usage in MB
+  detection_threads: 2         # Number of detection worker threads
+
+ui:
+  status_bar_enabled: true     # Show status bar icon (macOS)
+  system_tray_enabled: true    # Show system tray icon (Windows/Linux)
+  notifications_enabled: true  # Enable system notifications

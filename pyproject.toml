@@ -1,0 +1,122 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "asam"
+version = "1.0.0"
+description = "Advanced Screen Activity Monitor - AI-powered productivity monitoring"
+authors = [
+    {name = "ASAM Development Team", email = "dev@asam.dev"},
+]
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.9"
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: End Users/Desktop",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Desktop Environment :: Screen Savers",
+    "Topic :: System :: Monitoring",
+]
+keywords = ["productivity", "monitoring", "ai", "screen", "automation"]
+
+dependencies = [
+    "asyncio-mqtt>=0.11.0",
+    "click>=8.0.0",
+    "opencv-python>=4.8.0",
+    "pillow>=10.0.0",
+    "psutil>=5.9.0",
+    "pydantic>=2.0.0",
+    "pyyaml>=6.0",
+    "requests>=2.31.0",
+    "sqlalchemy>=2.0.0",
+    "structlog>=23.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-asyncio>=0.21.0",
+    "pytest-cov>=4.0.0",
+    "pytest-mock>=3.10.0",
+    "black>=23.0.0",
+    "isort>=5.12.0",
+    "mypy>=1.0.0",
+    "pre-commit>=3.0.0",
+    "ruff>=0.1.0",
+]
+
+macos = [
+    "pyobjc-framework-Cocoa>=9.0",
+    "pyobjc-framework-Quartz>=9.0",
+]
+
+windows = [
+    "pywin32>=306",
+    "wmi>=1.5.1",
+]
+
+[project.scripts]
+asam = "asam.main:cli_main"
+
+[project.urls]
+Homepage = "https://asam.dev"
+Documentation = "https://docs.asam.dev"
+Repository = "https://github.com/asam-monitor/asam"
+Issues = "https://github.com/asam-monitor/asam/issues"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+asam = ["resources/*", "configs/*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = [
+    "--cov=src/asam",
+    "--cov-report=html",
+    "--cov-report=term-missing",
+    "--strict-markers",
+]
+asyncio_mode = "auto"
+
+[tool.black]
+line-length = 88
+target-version = ['py39', 'py310', 'py311']
+include = '\.pyi?$'
+
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+line_length = 88
+
+[tool.mypy]
+python_version = "3.9"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+
+[tool.ruff]
+target-version = "py39"
+line-length = 88
+select = [
+    "E",  # pycodestyle errors
+    "W",  # pycodestyle warnings
+    "F",  # pyflakes
+    "I",  # isort
+    "B",  # flake8-bugbear
+    "C4", # flake8-comprehensions
+    "UP", # pyupgrade
+]
