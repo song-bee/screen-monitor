@@ -2,6 +2,6 @@
 Screen capture module for ASAM
 """
 
-from .screen import ScreenCaptureManager, ScreenCapture
+from .screen import ScreenCapture, ScreenCaptureManager
 
 __all__ = ["ScreenCaptureManager", "ScreenCapture"]

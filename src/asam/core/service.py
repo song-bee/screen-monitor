@@ -11,11 +11,11 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Optional
 
-from .detection import DetectionEngine
-from .detection.types import ActionType, AggregatedResult, ScreenCapture, TextContent
-from .capture import ScreenCaptureManager
 from .actions import ActionExecutionManager
-from .config import ConfigValidator, AsamConfig
+from .capture import ScreenCaptureManager
+from .config import AsamConfig, ConfigValidator
+from .detection import DetectionEngine
+from .detection.types import AggregatedResult, ScreenCapture, TextContent
 
 logger = logging.getLogger(__name__)
 
@@ -181,15 +181,17 @@ class AsamService:
         """Load and validate configuration"""
         try:
             if self.config_path and self.config_path.exists():
-                self.config, warnings = self.config_validator.load_and_validate(self.config_path)
-                
+                self.config, warnings = self.config_validator.load_and_validate(
+                    self.config_path
+                )
+
                 # Log configuration warnings
                 for warning in warnings:
                     self.logger.warning(f"Configuration warning: {warning}")
             else:
                 self.logger.info("Using default configuration")
                 self.config = self.config_validator.create_default_config()
-                
+
         except Exception as e:
             self.logger.error(f"Failed to load configuration: {e}")
             raise
@@ -220,7 +222,7 @@ class AsamService:
         """Capture current screen content"""
         if not self.capture_manager:
             return None
-        
+
         try:
             return await self.capture_manager.capture_screen()
         except Exception as e:
@@ -249,7 +251,10 @@ class AsamService:
         )
 
         # Track consecutive entertainment detections
-        if result.is_entertainment and result.overall_confidence > self.config.detection.confidence_threshold:
+        if (
+            result.is_entertainment
+            and result.overall_confidence > self.config.detection.confidence_threshold
+        ):
             self.consecutive_entertainment_detections += 1
         else:
             self.consecutive_entertainment_detections = 0
@@ -257,9 +262,13 @@ class AsamService:
         # Execute actions using action manager
         if self.action_manager:
             try:
-                success = await self.action_manager.execute_action(result.recommended_action, result)
+                success = await self.action_manager.execute_action(
+                    result.recommended_action, result
+                )
                 if not success:
-                    self.logger.warning(f"Action execution failed for: {result.recommended_action.value}")
+                    self.logger.warning(
+                        f"Action execution failed for: {result.recommended_action.value}"
+                    )
             except Exception as e:
                 self.logger.error(f"Error executing action: {e}")
 
@@ -276,11 +285,13 @@ class AsamService:
                 "detection_engine": self.detection_engine is not None,
                 "capture_manager": self.capture_manager is not None,
                 "action_manager": self.action_manager is not None,
-            }
+            },
         }
 
         if self.config:
-            status["analysis_interval"] = self.config.detection.analysis_interval_seconds
+            status["analysis_interval"] = (
+                self.config.detection.analysis_interval_seconds
+            )
             status["confidence_threshold"] = self.config.detection.confidence_threshold
 
         if self.detection_engine:
@@ -308,7 +319,7 @@ class AsamService:
                 "confidence": self.last_result.overall_confidence,
                 "action": self.last_result.recommended_action.value,
                 "duration_ms": self.last_result.analysis_duration_ms,
-                "analyzers_count": len(self.last_result.individual_results)
+                "analyzers_count": len(self.last_result.individual_results),
             }
 
         return status
@@ -326,7 +337,7 @@ class AsamService:
         """Get screen capture information"""
         if not self.capture_manager:
             return {"error": "Screen capture manager not initialized"}
-        
+
         try:
             return await self.capture_manager.get_screen_info()
         except Exception as e:
@@ -336,9 +347,9 @@ class AsamService:
         """Test all components (for diagnostics)"""
         results = {
             "detection_engine": "not_initialized",
-            "capture_manager": "not_initialized", 
+            "capture_manager": "not_initialized",
             "action_manager": "not_initialized",
-            "overall_status": "unknown"
+            "overall_status": "unknown",
         }
 
         # Test detection engine
@@ -348,15 +359,19 @@ class AsamService:
                 results["detection_engine"] = "ok" if engine_status else "error"
             except Exception as e:
                 results["detection_engine"] = f"error: {e}"
-        
+
         # Test capture manager
         if self.capture_manager:
             try:
                 screen_info = await self.capture_manager.get_screen_info()
-                results["capture_manager"] = "ok" if "error" not in screen_info else f"error: {screen_info.get('error')}"
+                results["capture_manager"] = (
+                    "ok"
+                    if "error" not in screen_info
+                    else f"error: {screen_info.get('error')}"
+                )
             except Exception as e:
                 results["capture_manager"] = f"error: {e}"
-        
+
         # Test action manager
         if self.action_manager:
             try:
@@ -364,7 +379,7 @@ class AsamService:
                 results["action_manager"] = "ok" if action_stats else "error"
             except Exception as e:
                 results["action_manager"] = f"error: {e}"
-        
+
         # Overall status
         component_statuses = [v for k, v in results.items() if k != "overall_status"]
         if all("ok" in status for status in component_statuses):
