@@ -225,10 +225,21 @@ class VisionAnalyzer(AnalyzerBase):
             if len(self._motion_history) > 10:  # Keep last 10 frames
                 self._motion_history.pop(0)
 
-            # 4. Region-based motion analysis (videos often have centered motion)
+            # 4. Find most active motion areas and analyze them
+            motion_areas = self._find_active_motion_areas(frame_diff, current_gray)
+            if motion_areas:
+                area_confidence = await self._analyze_focused_motion_areas(
+                    motion_areas, current_gray, self.previous_frame, image
+                )
+                if area_confidence > 0.4:
+                    confidence_factors.append(area_confidence)
+                    evidence["focused_motion_confidence"] = float(area_confidence)
+                    evidence["motion_areas_count"] = len(motion_areas)
+                    
+            # 5. Legacy region-based motion analysis (kept for comparison)
             region_confidence = self._analyze_motion_regions(frame_diff)
             if region_confidence > 0.3:
-                confidence_factors.append(region_confidence * 0.6)  # Weighted
+                confidence_factors.append(region_confidence * 0.5)  # Lower weight now
                 evidence["region_motion_confidence"] = float(region_confidence)
 
             if confidence_factors:
@@ -332,6 +343,354 @@ class VisionAnalyzer(AnalyzerBase):
 
             return 0.0
         except Exception:
+            return 0.0
+
+    def _find_active_motion_areas(
+        self, frame_diff: np.ndarray, current_gray: np.ndarray
+    ) -> list[tuple[int, int, int, int]]:
+        """Find rectangular areas with the most motion activity"""
+        try:
+            height, width = frame_diff.shape
+            motion_threshold = 30
+            
+            # Create binary motion mask
+            motion_mask = (frame_diff > motion_threshold).astype(np.uint8) * 255
+            
+            # Use morphological operations to connect nearby motion areas
+            kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (10, 10))
+            motion_mask = cv2.morphologyEx(motion_mask, cv2.MORPH_CLOSE, kernel)
+            motion_mask = cv2.morphologyEx(motion_mask, cv2.MORPH_OPEN, kernel // 2)
+            
+            # Find contours of motion areas
+            contours, _ = cv2.findContours(motion_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            
+            motion_areas = []
+            for contour in contours:
+                # Get bounding rectangle
+                x, y, w, h = cv2.boundingRect(contour)
+                area = w * h
+                
+                # Filter based on size and shape
+                if (
+                    area > 5000 and  # Minimum area (roughly 70x70 pixels)
+                    area < width * height * 0.8 and  # Not too large (max 80% of screen)
+                    w > 60 and h > 60 and  # Minimum dimensions
+                    min(w, h) / max(w, h) > 0.3  # Not too thin/narrow
+                ):
+                    # Calculate motion intensity in this area
+                    roi_motion = frame_diff[y:y+h, x:x+w]
+                    motion_intensity = np.mean(roi_motion[roi_motion > motion_threshold])
+                    motion_pixel_ratio = np.sum(roi_motion > motion_threshold) / (w * h)
+                    
+                    # Only include areas with significant motion
+                    if motion_intensity > 40 and motion_pixel_ratio > 0.1:
+                        motion_areas.append((x, y, w, h, motion_intensity, motion_pixel_ratio))
+            
+            # Sort by motion intensity and keep top areas
+            motion_areas.sort(key=lambda area: area[4] * area[5], reverse=True)  # intensity * ratio
+            
+            # Return top 3 motion areas (without intensity metrics for external use)
+            return [(x, y, w, h) for x, y, w, h, _, _ in motion_areas[:3]]
+            
+        except Exception as e:
+            self.logger.debug(f"Error finding motion areas: {e}")
+            return []
+
+    async def _analyze_focused_motion_areas(
+        self, 
+        motion_areas: list[tuple[int, int, int, int]], 
+        current_gray: np.ndarray, 
+        previous_gray: np.ndarray,
+        color_image: np.ndarray
+    ) -> float:
+        """Analyze focused motion areas to determine if they contain video/entertainment content"""
+        try:
+            area_confidences = []
+            
+            for x, y, w, h in motion_areas:
+                # Extract the motion area from both frames
+                current_roi = current_gray[y:y+h, x:x+w]
+                previous_roi = previous_gray[y:y+h, x:x+w]
+                color_roi = color_image[y:y+h, x:x+w]
+                
+                area_confidence = 0.0
+                evidence_factors = []
+                
+                # 1. Temporal consistency analysis in focused area
+                roi_diff = cv2.absdiff(current_roi, previous_roi)
+                motion_pixels = np.sum(roi_diff > 30)
+                total_pixels = current_roi.size
+                local_motion_ratio = motion_pixels / total_pixels if total_pixels > 0 else 0
+                
+                if 0.1 < local_motion_ratio < 0.9:  # Good motion range for video
+                    consistency_score = self._calculate_area_motion_consistency(
+                        local_motion_ratio, x, y, w, h
+                    )
+                    if consistency_score > 0.3:
+                        evidence_factors.append(consistency_score)
+                
+                # 2. Check for video-like motion patterns (smooth, consistent)
+                flow_quality = await self._analyze_area_optical_flow(current_roi, previous_roi)
+                if flow_quality > 0.3:
+                    evidence_factors.append(flow_quality * 0.9)  # High weight for optical flow
+                
+                # 3. Color dynamics analysis (videos have changing colors)
+                color_dynamics = self._analyze_area_color_dynamics(color_roi, x, y, w, h)
+                if color_dynamics > 0.3:
+                    evidence_factors.append(color_dynamics * 0.7)
+                
+                # 4. Check for video-specific characteristics
+                video_characteristics = self._detect_video_characteristics_in_area(
+                    current_roi, color_roi, w, h
+                )
+                if video_characteristics > 0.3:
+                    evidence_factors.append(video_characteristics * 0.8)
+                
+                # 5. Aspect ratio analysis (videos often have specific ratios)
+                aspect_ratio = w / h if h > 0 else 0
+                aspect_score = 0.0
+                if 1.3 < aspect_ratio < 2.4:  # Common video aspect ratios (4:3 to 21:9)
+                    aspect_score = min(0.6, 1.0 - abs(aspect_ratio - 1.78) / 1.78)  # 16:9 is ideal
+                    if aspect_score > 0.2:
+                        evidence_factors.append(aspect_score * 0.5)
+                
+                # Calculate confidence for this area
+                if evidence_factors:
+                    area_confidence = max(evidence_factors)
+                    area_confidences.append(area_confidence)
+                    
+                    self.logger.debug(
+                        f"Motion area ({x},{y},{w}x{h}): "
+                        f"motion={local_motion_ratio:.3f}, "
+                        f"flow={flow_quality:.3f}, "
+                        f"color={color_dynamics:.3f}, "
+                        f"video_char={video_characteristics:.3f}, "
+                        f"aspect={aspect_score:.3f}, "
+                        f"confidence={area_confidence:.3f}"
+                    )
+            
+            # Return the highest confidence from all areas
+            return max(area_confidences) if area_confidences else 0.0
+            
+        except Exception as e:
+            self.logger.error(f"Error analyzing focused motion areas: {e}")
+            return 0.0
+
+    def _calculate_area_motion_consistency(
+        self, motion_ratio: float, x: int, y: int, w: int, h: int
+    ) -> float:
+        """Calculate motion consistency for a specific area"""
+        try:
+            # Store per-area motion history
+            area_key = f"{x}_{y}_{w}_{h}"
+            if not hasattr(self, '_area_motion_history'):
+                self._area_motion_history = {}
+            
+            if area_key not in self._area_motion_history:
+                self._area_motion_history[area_key] = []
+            
+            history = self._area_motion_history[area_key]
+            history.append(motion_ratio)
+            
+            # Keep only recent history
+            if len(history) > 5:
+                history.pop(0)
+            
+            if len(history) < 3:
+                return 0.0
+            
+            # Calculate consistency
+            mean_motion = np.mean(history)
+            std_motion = np.std(history)
+            
+            # Video content has consistent moderate motion
+            if 0.15 < mean_motion < 0.7 and std_motion < 0.2:
+                consistency = 1.0 - (std_motion / max(mean_motion, 0.1))
+                return min(consistency, 1.0)
+            
+            return 0.0
+            
+        except Exception:
+            return 0.0
+
+    async def _analyze_area_optical_flow(
+        self, current_roi: np.ndarray, previous_roi: np.ndarray
+    ) -> float:
+        """Analyze optical flow specifically within a motion area"""
+        try:
+            if current_roi.shape[0] < 50 or current_roi.shape[1] < 50:
+                return 0.0  # Too small for meaningful optical flow
+            
+            # Detect corners in the ROI
+            corners = cv2.goodFeaturesToTrack(
+                previous_roi,
+                maxCorners=50,  # Fewer corners for smaller area
+                qualityLevel=0.01,
+                minDistance=5,  # Smaller distance for ROI
+                blockSize=3
+            )
+            
+            if corners is None or len(corners) < 5:
+                return 0.0
+            
+            # Calculate optical flow
+            flow_vectors, status, _ = cv2.calcOpticalFlowPyrLK(
+                previous_roi, current_roi, corners, None
+            )
+            
+            # Filter good tracks
+            good_new = flow_vectors[status == 1]
+            good_old = corners[status == 1]
+            
+            if len(good_new) < 3:
+                return 0.0
+            
+            # Analyze flow patterns
+            flow_magnitudes = np.sqrt(np.sum((good_new - good_old) ** 2, axis=1))
+            avg_magnitude = np.mean(flow_magnitudes)
+            magnitude_std = np.std(flow_magnitudes)
+            
+            # Check for directional consistency (videos often have coherent motion)
+            if len(good_new) >= 5:
+                flow_vectors_2d = good_new - good_old
+                flow_angles = np.arctan2(flow_vectors_2d[:, 1], flow_vectors_2d[:, 0])
+                angle_consistency = 1.0 - (np.std(flow_angles) / np.pi)  # Normalize by pi
+                
+                if (
+                    2 < avg_magnitude < 15 and  # Reasonable magnitude for video
+                    magnitude_std < avg_magnitude * 0.8 and  # Consistent magnitude
+                    angle_consistency > 0.3  # Some directional consistency
+                ):
+                    quality = min(
+                        (avg_magnitude / 15) * angle_consistency * 
+                        (1 - magnitude_std / max(avg_magnitude, 1)), 
+                        1.0
+                    )
+                    return quality
+            
+            return 0.0
+            
+        except Exception as e:
+            self.logger.debug(f"Area optical flow analysis failed: {e}")
+            return 0.0
+
+    def _analyze_area_color_dynamics(
+        self, color_roi: np.ndarray, x: int, y: int, w: int, h: int
+    ) -> float:
+        """Analyze color changes in a focused area over time"""
+        try:
+            # Store per-area color history
+            area_key = f"{x}_{y}_{w}_{h}"
+            if not hasattr(self, '_area_color_history'):
+                self._area_color_history = {}
+            
+            if area_key not in self._area_color_history:
+                self._area_color_history[area_key] = []
+            
+            # Calculate current color statistics
+            hsv_roi = cv2.cvtColor(color_roi, cv2.COLOR_BGR2HSV)
+            color_stats = {
+                'mean_hue': np.mean(hsv_roi[:, :, 0]),
+                'mean_saturation': np.mean(hsv_roi[:, :, 1]),
+                'mean_value': np.mean(hsv_roi[:, :, 2]),
+                'hue_std': np.std(hsv_roi[:, :, 0])
+            }
+            
+            history = self._area_color_history[area_key]
+            history.append(color_stats)
+            
+            if len(history) > 4:
+                history.pop(0)
+            
+            if len(history) < 3:
+                return 0.0
+            
+            # Analyze color dynamics
+            hue_changes = [abs(history[i]['mean_hue'] - history[i-1]['mean_hue']) 
+                          for i in range(1, len(history))]
+            sat_changes = [abs(history[i]['mean_saturation'] - history[i-1]['mean_saturation']) 
+                          for i in range(1, len(history))]
+            val_changes = [abs(history[i]['mean_value'] - history[i-1]['mean_value']) 
+                          for i in range(1, len(history))]
+            
+            avg_hue_change = np.mean(hue_changes)
+            avg_sat_change = np.mean(sat_changes)
+            avg_val_change = np.mean(val_changes)
+            
+            # Videos typically have moderate color changes
+            if (
+                5 < avg_hue_change < 50 and  # Moderate hue changes
+                10 < avg_sat_change < 80 and  # Moderate saturation changes  
+                5 < avg_val_change < 60  # Moderate brightness changes
+            ):
+                # Normalize and combine the changes
+                dynamics_score = (
+                    min(avg_hue_change / 50, 1.0) * 0.4 +
+                    min(avg_sat_change / 80, 1.0) * 0.3 +
+                    min(avg_val_change / 60, 1.0) * 0.3
+                )
+                return dynamics_score
+            
+            return 0.0
+            
+        except Exception:
+            return 0.0
+
+    def _detect_video_characteristics_in_area(
+        self, gray_roi: np.ndarray, color_roi: np.ndarray, w: int, h: int
+    ) -> float:
+        """Detect video-specific characteristics within a focused area"""
+        try:
+            confidence_factors = []
+            
+            # 1. Edge density analysis (videos have varying edge content)
+            edges = cv2.Canny(gray_roi, 50, 150)
+            edge_density = np.sum(edges > 0) / edges.size
+            
+            if 0.05 < edge_density < 0.4:  # Good range for video content
+                confidence_factors.append(min(edge_density * 2, 0.7))
+            
+            # 2. Texture analysis (videos have rich, varying textures)
+            if gray_roi.shape[0] > 32 and gray_roi.shape[1] > 32:
+                try:
+                    # Try scikit-image LBP if available
+                    from skimage.feature import local_binary_pattern
+                    
+                    # LBP analysis
+                    lbp = local_binary_pattern(gray_roi, 8, 1, method='uniform')
+                    lbp_var = np.var(lbp)
+                    
+                    if lbp_var > 50:  # Good texture variation
+                        confidence_factors.append(min(lbp_var / 200, 0.6))
+                        
+                except ImportError:
+                    # Fallback texture analysis using gradients
+                    grad_x = cv2.Sobel(gray_roi, cv2.CV_64F, 1, 0, ksize=3)
+                    grad_y = cv2.Sobel(gray_roi, cv2.CV_64F, 0, 1, ksize=3)
+                    texture_strength = np.mean(np.sqrt(grad_x**2 + grad_y**2))
+                    
+                    if texture_strength > 20:
+                        confidence_factors.append(min(texture_strength / 100, 0.5))
+            
+            # 3. Color richness in the area
+            hsv_roi = cv2.cvtColor(color_roi, cv2.COLOR_BGR2HSV)
+            unique_hues = len(np.unique(hsv_roi[:, :, 0]))
+            hue_diversity = unique_hues / 180.0
+            high_sat_ratio = np.sum(hsv_roi[:, :, 1] > 100) / hsv_roi[:, :, 1].size
+            
+            if hue_diversity > 0.3 and high_sat_ratio > 0.2:
+                color_richness = (hue_diversity * 0.6 + high_sat_ratio * 0.4)
+                confidence_factors.append(min(color_richness, 0.6))
+            
+            # 4. Contrast variation (videos have dynamic contrast)
+            contrast = np.std(gray_roi)
+            if 25 < contrast < 120:  # Good contrast range for video
+                confidence_factors.append(min(contrast / 120, 0.5))
+            
+            return max(confidence_factors) if confidence_factors else 0.0
+            
+        except Exception as e:
+            self.logger.debug(f"Video characteristics detection failed: {e}")
             return 0.0
 
     async def _detect_advertisements(
