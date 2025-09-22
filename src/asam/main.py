@@ -9,6 +9,7 @@ import argparse
 import asyncio
 import logging
 import sys
+from pathlib import Path
 
 from .config.manager import ConfigManager
 from .core.service import ASAMService
@@ -66,7 +67,8 @@ async def main():
             return 0
 
         # Initialize and start main service
-        service = ASAMService(config_manager)
+        config_path = Path(args.config) if args.config else None
+        service = ASAMService(config_path)
 
         if args.restart:
             logger.info("Restarting ASAM service...")

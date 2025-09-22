@@ -20,7 +20,7 @@ from .detection.types import AggregatedResult, ScreenCapture, TextContent
 logger = logging.getLogger(__name__)
 
 
-class AsamService:
+class ASAMService:
     """Main ASAM service orchestrator with integrated detection pipeline"""
 
     def __init__(self, config_path: Optional[Path] = None):
@@ -232,12 +232,38 @@ class AsamService:
     async def _extract_text_content(self) -> Optional[TextContent]:
         """Extract text content from various sources"""
         try:
-            # TODO: Implement text extraction from:
-            # - Browser extension
-            # - OCR from screen capture
+            text_parts = []
+            metadata = {}
+
+            # Extract active window title
+            if self.capture_manager:
+                try:
+                    screen_info = await self.capture_manager.get_screen_info()
+                    if "active_window" in screen_info:
+                        window_title = screen_info["active_window"].get("title", "")
+                        if window_title:
+                            text_parts.append(f"Active window: {window_title}")
+                            metadata["window_title"] = window_title
+                except Exception as e:
+                    self.logger.debug(f"Failed to get window title: {e}")
+
+            # TODO: Implement additional text extraction:
+            # - Browser extension integration
+            # - OCR from screen capture (requires pytesseract)
             # - Clipboard monitoring
-            # - Active window title
+            # - Process command line arguments
+
+            if text_parts:
+                combined_text = "\n".join(text_parts)
+                return TextContent(
+                    content=combined_text,
+                    source="system_extraction",
+                    timestamp=datetime.now(),
+                    metadata=metadata
+                )
+
             return None
+
         except Exception as e:
             self.logger.error(f"Text extraction failed: {e}")
             return None
