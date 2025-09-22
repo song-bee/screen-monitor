@@ -66,12 +66,33 @@ class ConfidenceAggregator:
     def aggregate(
         self, detection_results: list[DetectionResult], analysis_start_time: datetime
     ) -> AggregatedResult:
+        """Legacy aggregation method - delegates to aggregate_with_rules with empty rules"""
+        empty_rules_decision = {
+            "action": ActionType.LOG_ONLY,
+            "confidence": 0.0,
+            "category": ContentCategory.UNKNOWN,
+            "reasoning": "Legacy aggregation",
+            "matched_rules": [],
+            "analyzer_breakdown": {},
+            "consecutive_count": 0,
+        }
+        return self.aggregate_with_rules(
+            detection_results, analysis_start_time, empty_rules_decision
+        )
+
+    def aggregate_with_rules(
+        self,
+        detection_results: list[DetectionResult],
+        analysis_start_time: datetime,
+        rules_decision: dict[str, Any],
+    ) -> AggregatedResult:
         """
-        Aggregate detection results from multiple analyzers
+        Aggregate detection results from multiple analyzers with advanced rules
 
         Args:
             detection_results: List of detection results from analyzers
             analysis_start_time: When the analysis started
+            rules_decision: Decision from the advanced rules engine
 
         Returns:
             AggregatedResult with final decision
@@ -84,32 +105,43 @@ class ConfidenceAggregator:
         if not valid_results:
             return self._create_no_detection_result(analysis_start_time)
 
-        # Calculate weighted confidence
-        weighted_confidence = self._calculate_weighted_confidence(valid_results)
-
-        # Determine primary category
-        primary_category = self._determine_primary_category(
-            valid_results, weighted_confidence
-        )
-
-        # Apply consensus requirements if enabled
-        if self.require_consensus:
-            consensus_result = self._apply_consensus_logic(
-                valid_results, weighted_confidence, primary_category
+        # Use rules engine decision if available, otherwise fall back to legacy logic
+        if rules_decision and rules_decision.get("confidence", 0) > 0:
+            # Use rules engine decision
+            weighted_confidence = rules_decision["confidence"]
+            primary_category = rules_decision["category"]
+            recommended_action = rules_decision["action"]
+            self.logger.debug(
+                f"Using rules engine decision: {rules_decision['reasoning']}"
             )
-            if consensus_result:
-                weighted_confidence, primary_category = consensus_result
+        else:
+            # Fall back to legacy aggregation logic
+            # Calculate weighted confidence
+            weighted_confidence = self._calculate_weighted_confidence(valid_results)
 
-        # Apply temporal analysis if enabled
-        if self.enable_temporal_analysis:
-            weighted_confidence = self._apply_temporal_analysis(
+            # Determine primary category
+            primary_category = self._determine_primary_category(
+                valid_results, weighted_confidence
+            )
+
+            # Apply consensus requirements if enabled
+            if self.require_consensus:
+                consensus_result = self._apply_consensus_logic(
+                    valid_results, weighted_confidence, primary_category
+                )
+                if consensus_result:
+                    weighted_confidence, primary_category = consensus_result
+
+            # Apply temporal analysis if enabled
+            if self.enable_temporal_analysis:
+                weighted_confidence = self._apply_temporal_analysis(
+                    weighted_confidence, primary_category
+                )
+
+            # Determine recommended action
+            recommended_action = self._determine_action(
                 weighted_confidence, primary_category
             )
-
-        # Determine recommended action
-        recommended_action = self._determine_action(
-            weighted_confidence, primary_category
-        )
 
         # Calculate analysis duration
         analysis_duration = int(

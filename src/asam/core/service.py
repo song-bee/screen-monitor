@@ -247,9 +247,23 @@ class ASAMService:
                 except Exception as e:
                     self.logger.debug(f"Failed to get window title: {e}")
 
+            # Extract text from screen using OCR
+            try:
+                screen_capture = await self._capture_screen()
+                if screen_capture and screen_capture.image:
+                    ocr_text = await self._extract_text_from_image(screen_capture.image)
+                    if ocr_text and len(ocr_text.strip()) > 5:
+                        text_parts.append(
+                            f"Screen text: {ocr_text[:1000]}"
+                        )  # Limit OCR text
+                        metadata["ocr_text_length"] = len(ocr_text)
+                        metadata["has_ocr"] = True
+            except Exception as e:
+                self.logger.debug(f"OCR extraction failed: {e}")
+                metadata["ocr_error"] = str(e)
+
             # TODO: Implement additional text extraction:
             # - Browser extension integration
-            # - OCR from screen capture (requires pytesseract)
             # - Clipboard monitoring
             # - Process command line arguments
 
@@ -259,13 +273,56 @@ class ASAMService:
                     content=combined_text,
                     source="system_extraction",
                     timestamp=datetime.now(),
-                    metadata=metadata
+                    metadata=metadata,
                 )
 
             return None
 
         except Exception as e:
             self.logger.error(f"Text extraction failed: {e}")
+            return None
+
+    async def _extract_text_from_image(self, image) -> Optional[str]:
+        """Extract text from image using OCR"""
+        try:
+
+            import pytesseract
+            from PIL import Image
+
+            # Convert image to PIL Image if needed
+            if hasattr(image, "save"):
+                # Already a PIL Image
+                pil_image = image
+            else:
+                # Convert from other format
+                if hasattr(image, "tobytes"):
+                    # NumPy array
+                    pil_image = Image.fromarray(image)
+                else:
+                    return None
+
+            # Resize image if too large (OCR works better on smaller images)
+            width, height = pil_image.size
+            max_size = 1920
+            if width > max_size or height > max_size:
+                ratio = min(max_size / width, max_size / height)
+                new_size = (int(width * ratio), int(height * ratio))
+                pil_image = pil_image.resize(new_size, Image.Resampling.LANCZOS)
+
+            # Configure Tesseract for better text extraction
+            custom_config = r'--oem 3 --psm 6 -c tessedit_char_whitelist=ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789.,!?:;-_()[]{}@#$%^&*+=<>/\|`~" '
+
+            # Extract text
+            text = pytesseract.image_to_string(pil_image, config=custom_config)
+
+            # Clean up text
+            lines = [line.strip() for line in text.split("\n") if line.strip()]
+            cleaned_text = "\n".join(lines)
+
+            return cleaned_text if cleaned_text else None
+
+        except Exception as e:
+            self.logger.debug(f"OCR processing failed: {e}")
             return None
 
     async def _process_analysis_result(self, result: AggregatedResult) -> None:

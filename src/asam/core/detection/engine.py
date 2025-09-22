@@ -17,6 +17,7 @@ from .analyzers import (
     TextAnalyzer,
     VisionAnalyzer,
 )
+from .rules import AdvancedDetectionRulesEngine
 from .types import AggregatedResult, DetectionResult, ScreenCapture, TextContent
 
 
@@ -35,6 +36,7 @@ class DetectionEngine:
         # Initialize components
         self.analyzers: dict[str, AnalyzerBase] = {}
         self.aggregator = ConfidenceAggregator(self.config.get("aggregator", {}))
+        self.rules_engine = AdvancedDetectionRulesEngine(self.config.get("rules", {}))
 
         # Engine state
         self.initialized = False
@@ -139,9 +141,14 @@ class DetectionEngine:
                 screen_capture, text_content, additional_data
             )
 
-            # Aggregate results
-            aggregated_result = self.aggregator.aggregate(
-                detection_results, analysis_start_time
+            # Apply advanced rules engine for intelligent decision making
+            rules_decision = self.rules_engine.evaluate_detection_results(
+                detection_results, additional_data
+            )
+
+            # Aggregate results using rules engine output
+            aggregated_result = self.aggregator.aggregate_with_rules(
+                detection_results, analysis_start_time, rules_decision
             )
 
             # Update statistics

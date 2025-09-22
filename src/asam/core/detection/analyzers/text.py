@@ -154,35 +154,47 @@ class TextAnalyzer(AnalyzerBase):
 
     def _create_analysis_prompt(self, text: str) -> str:
         """Create analysis prompt for the LLM"""
-        return f"""Analyze the following text content and determine if it represents entertainment/recreational content or productive content.
+        return f"""You are an AI assistant that analyzes text content to determine if it represents entertainment/recreational activities or productive work.
 
-Consider these entertainment categories:
-- Gaming (games, gaming websites, gaming forums)
-- Video streaming (YouTube entertainment, Netflix, TikTok, etc.)
-- Social media (Facebook, Twitter, Instagram, Reddit for leisure)
-- Entertainment articles/blogs (celebrity news, entertainment content)
-- Online novels/fiction reading
-- Leisure shopping/browsing
+ENTERTAINMENT INDICATORS (classify as "entertainment" with HIGH confidence 0.8+):
+- Gaming: game titles, scores, achievements, gaming forums, Twitch, Steam
+- Video streaming: YouTube entertainment, Netflix, movies, TV shows, TikTok, short videos
+- Social media leisure: Instagram posts, Facebook timeline, Twitter social content, Reddit memes
+- Fiction/novels: story content, character names, fictional narratives
+- Celebrity/gossip: entertainment news, celebrity social media, tabloid content
+- Leisure shopping: non-essential items, entertainment products, hobby materials
 
-Consider these productive categories:
-- Work-related content (documentation, professional emails, project management)
-- Educational content (learning materials, tutorials, academic content)
-- News/informational content (legitimate news, research, technical articles)
-- Professional development
-- Work-related shopping/tools
+PRODUCTIVE INDICATORS (classify as "productive" with HIGH confidence 0.8+):
+- Work documents: emails, reports, spreadsheets, project management, presentations
+- Technical content: code, documentation, API references, technical tutorials
+- Educational: academic papers, learning materials, certification content, courses
+- Professional development: skill building, career-related content, training
+- News/research: factual news articles, data analysis, research papers
+- Work tools: professional software interfaces, productivity apps
 
-Text to analyze:
+MIXED/AMBIGUOUS (classify as "unknown" with LOWER confidence 0.3-0.6):
+- Context unclear from text alone
+- Could be either entertainment or work depending on context
+- Window titles without clear content
+- Generic interface elements
+
+TEXT TO ANALYZE:
 {text}
 
-Respond in JSON format with:
+INSTRUCTIONS:
+1. Focus on CONTENT TYPE rather than platform (YouTube can be educational or entertainment)
+2. Consider INTENT (learning vs leisure consumption)
+3. Look for specific keywords and context clues
+4. Be confident in clear cases, conservative in ambiguous ones
+
+Respond ONLY in valid JSON:
 {{
     "category": "entertainment|productive|unknown",
     "confidence": 0.0-1.0,
-    "reasoning": "brief explanation",
-    "keywords": ["key", "words", "identified"]
-}}
-
-Be strict - only classify as entertainment if you're confident it's recreational content."""
+    "reasoning": "specific evidence from text",
+    "keywords": ["specific", "relevant", "terms"],
+    "subcategory": "gaming|video|social|work|education|news|unclear"
+}}"""
 
     async def _query_llm(self, prompt: str) -> dict[str, Any]:
         """Query the LLM with the analysis prompt"""
@@ -233,6 +245,7 @@ Be strict - only classify as entertainment if you're confident it's recreational
             # Build evidence
             evidence = {
                 "llm_category": llm_category,
+                "subcategory": analysis.get("subcategory", "unclear"),
                 "reasoning": analysis.get("reasoning", ""),
                 "keywords": analysis.get("keywords", []),
                 "text_length": len(original_data.content),
