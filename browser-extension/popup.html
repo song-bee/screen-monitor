@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <style>
+        body {
+            width: 320px;
+            padding: 20px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+            font-size: 14px;
+            background-color: #f5f5f5;
+            margin: 0;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .logo {
+            font-size: 18px;
+            font-weight: bold;
+            color: #2196F3;
+            margin-bottom: 5px;
+        }
+
+        .status {
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .status.connected {
+            background-color: #E8F5E8;
+            border: 1px solid #4CAF50;
+            color: #2E7D32;
+        }
+
+        .status.disconnected {
+            background-color: #FFEBEE;
+            border: 1px solid #F44336;
+            color: #C62828;
+        }
+
+        .status.error {
+            background-color: #FFF3E0;
+            border: 1px solid #FF9800;
+            color: #E65100;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+
+        .connected .status-dot {
+            background-color: #4CAF50;
+        }
+
+        .disconnected .status-dot {
+            background-color: #F44336;
+        }
+
+        .error .status-dot {
+            background-color: #FF9800;
+        }
+
+        .info-section {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            border: 1px solid #E0E0E0;
+        }
+
+        .info-title {
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 13px;
+        }
+
+        .info-label {
+            color: #666;
+        }
+
+        .info-value {
+            font-weight: 500;
+            color: #333;
+        }
+
+        .button {
+            width: 100%;
+            padding: 10px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .button.primary {
+            background-color: #2196F3;
+            color: white;
+        }
+
+        .button.primary:hover {
+            background-color: #1976D2;
+        }
+
+        .button.secondary {
+            background-color: #f5f5f5;
+            color: #666;
+            border: 1px solid #ddd;
+        }
+
+        .button.secondary:hover {
+            background-color: #eeeeee;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .spinner {
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #2196F3;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 15px;
+            font-size: 12px;
+            color: #888;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo">🔍 ASAM Monitor</div>
+        <div>Browser Content Analysis</div>
+    </div>
+
+    <div id="status-section" class="status disconnected">
+        <div class="status-dot"></div>
+        <div>
+            <div id="status-text">Checking connection...</div>
+            <div id="status-detail" style="font-size: 12px; opacity: 0.8;"></div>
+        </div>
+    </div>
+
+    <div class="info-section">
+        <div class="info-title">Connection Info</div>
+        <div class="info-row">
+            <span class="info-label">Service:</span>
+            <span class="info-value" id="service-url">localhost:8888</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">Status:</span>
+            <span class="info-value" id="connection-status">Unknown</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">Last Activity:</span>
+            <span class="info-value" id="last-activity">None</span>
+        </div>
+    </div>
+
+    <div class="info-section">
+        <div class="info-title">Current Page</div>
+        <div class="info-row">
+            <span class="info-label">Title:</span>
+            <span class="info-value" id="page-title">-</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">URL:</span>
+            <span class="info-value" id="page-url">-</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">Monitoring:</span>
+            <span class="info-value" id="monitoring-status">Active</span>
+        </div>
+    </div>
+
+    <button id="refresh-btn" class="button primary">Refresh Connection</button>
+    <button id="test-btn" class="button secondary" style="margin-top: 8px;">Send Test Data</button>
+
+    <div class="loading" id="loading">
+        <div class="spinner"></div>
+        <div>Connecting...</div>
+    </div>
+
+    <div class="footer">
+        ASAM v1.0.0 • Privacy-focused monitoring
+    </div>
+
+    <script src="popup.js"></script>
+</body>
+</html>
