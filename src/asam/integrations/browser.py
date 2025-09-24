@@ -323,11 +323,13 @@ class BrowserExtensionManager:
         self.logger.info(f"   📏 Content Length: {content_length:,} characters")
 
         # Content structure analysis
-        lines = browser_content.text_content.split('\n')
+        lines = browser_content.text_content.split("\n")
         words = browser_content.text_content.split()
-        paragraphs = [p.strip() for p in browser_content.text_content.split('\n\n') if p.strip()]
+        paragraphs = [
+            p.strip() for p in browser_content.text_content.split("\n\n") if p.strip()
+        ]
 
-        self.logger.debug(f"📊 Content Structure Analysis:")
+        self.logger.debug("📊 Content Structure Analysis:")
         self.logger.debug(f"   Lines: {len(lines)}")
         self.logger.debug(f"   Words: {len(words)}")
         self.logger.debug(f"   Paragraphs: {len(paragraphs)}")
@@ -337,8 +339,10 @@ class BrowserExtensionManager:
         preview_length = min(400, content_length)
         content_preview = browser_content.text_content[:preview_length]
 
-        self.logger.debug(f"📖 ULTRA-VERBOSE CONTENT PREVIEW ({preview_length} of {content_length} chars):")
-        preview_lines = content_preview.split('\n')[:8]  # Show first 8 lines
+        self.logger.debug(
+            f"📖 ULTRA-VERBOSE CONTENT PREVIEW ({preview_length} of {content_length} chars):"
+        )
+        preview_lines = content_preview.split("\n")[:8]  # Show first 8 lines
         for i, line in enumerate(preview_lines, 1):
             line_display = line[:120] + "..." if len(line) > 120 else line
             self.logger.debug(f"   {i:2d}: {repr(line_display)}")
@@ -352,13 +356,42 @@ class BrowserExtensionManager:
 
         # Analyze different content indicators
         indicators = {
-            'Gaming': ['game', 'play', 'level', 'score', 'win', 'player', 'gaming'],
-            'Social Media': ['like', 'share', 'comment', 'follow', 'post', 'tweet', 'social'],
-            'Educational': ['learn', 'tutorial', 'course', 'study', 'education', 'lesson'],
-            'Entertainment': ['video', 'watch', 'funny', 'entertainment', 'movie', 'show'],
-            'News': ['breaking', 'news', 'report', 'today', 'update', 'latest'],
-            'Technical': ['code', 'programming', 'development', 'api', 'technical', 'software'],
-            'Shopping': ['buy', 'price', 'cart', 'purchase', 'shop', 'store']
+            "Gaming": ["game", "play", "level", "score", "win", "player", "gaming"],
+            "Social Media": [
+                "like",
+                "share",
+                "comment",
+                "follow",
+                "post",
+                "tweet",
+                "social",
+            ],
+            "Educational": [
+                "learn",
+                "tutorial",
+                "course",
+                "study",
+                "education",
+                "lesson",
+            ],
+            "Entertainment": [
+                "video",
+                "watch",
+                "funny",
+                "entertainment",
+                "movie",
+                "show",
+            ],
+            "News": ["breaking", "news", "report", "today", "update", "latest"],
+            "Technical": [
+                "code",
+                "programming",
+                "development",
+                "api",
+                "technical",
+                "software",
+            ],
+            "Shopping": ["buy", "price", "cart", "purchase", "shop", "store"],
         }
 
         detected_indicators = {}
@@ -368,74 +401,93 @@ class BrowserExtensionManager:
                 detected_indicators[category] = matches
 
         if detected_indicators:
-            self.logger.debug(f"🎯 Content Type Indicators:")
-            for category, count in sorted(detected_indicators.items(), key=lambda x: x[1], reverse=True):
+            self.logger.debug("🎯 Content Type Indicators:")
+            for category, count in sorted(
+                detected_indicators.items(), key=lambda x: x[1], reverse=True
+            ):
                 self.logger.debug(f"   {category}: {count} keyword matches")
         else:
-            self.logger.debug(f"🎯 Content Type Indicators: No clear indicators found")
+            self.logger.debug("🎯 Content Type Indicators: No clear indicators found")
 
         # Ultra-verbose metadata logging
         if browser_content.metadata:
-            self.logger.debug(f"🔍 ULTRA-VERBOSE METADATA ANALYSIS:")
+            self.logger.debug("🔍 ULTRA-VERBOSE METADATA ANALYSIS:")
             for key, value in browser_content.metadata.items():
                 if isinstance(value, str):
                     value_display = value[:100] + "..." if len(value) > 100 else value
                     self.logger.debug(f"   {key}: {repr(value_display)}")
                 elif isinstance(value, dict):
                     self.logger.debug(f"   {key}: {len(value)} dict items")
-                    for sub_key, sub_value in list(value.items())[:3]:  # Show first 3 dict items
-                        sub_display = str(sub_value)[:50] + "..." if len(str(sub_value)) > 50 else str(sub_value)
+                    for sub_key, sub_value in list(value.items())[
+                        :3
+                    ]:  # Show first 3 dict items
+                        sub_display = (
+                            str(sub_value)[:50] + "..."
+                            if len(str(sub_value)) > 50
+                            else str(sub_value)
+                        )
                         self.logger.debug(f"      {sub_key}: {sub_display}")
                     if len(value) > 3:
                         self.logger.debug(f"      ... plus {len(value) - 3} more items")
                 else:
                     self.logger.debug(f"   {key}: {value}")
         else:
-            self.logger.debug(f"📊 No metadata provided with content")
+            self.logger.debug("📊 No metadata provided with content")
 
         # Convert to TextContent for analysis with timing
         if self.text_analysis_callback:
-            self.logger.debug(f"🔄 Preparing for text analysis callback...")
+            self.logger.debug("🔄 Preparing for text analysis callback...")
             conversion_start = datetime.now()
 
             try:
                 text_content = self.server.convert_to_text_content(browser_content)
-                conversion_time = (datetime.now() - conversion_start).total_seconds() * 1000
+                conversion_time = (
+                    datetime.now() - conversion_start
+                ).total_seconds() * 1000
 
-                self.logger.debug(f"📦 TextContent conversion completed in {conversion_time:.2f}ms")
+                self.logger.debug(
+                    f"📦 TextContent conversion completed in {conversion_time:.2f}ms"
+                )
                 self.logger.debug(f"   Source: {text_content.source}")
-                self.logger.debug(f"   Combined length: {len(text_content.content):,} chars")
-                self.logger.debug(f"   Metadata keys: {list(text_content.metadata.keys())}")
+                self.logger.debug(
+                    f"   Combined length: {len(text_content.content):,} chars"
+                )
+                self.logger.debug(
+                    f"   Metadata keys: {list(text_content.metadata.keys())}"
+                )
 
                 callback_start = datetime.now()
                 if asyncio.iscoroutinefunction(self.text_analysis_callback):
-                    self.logger.debug(f"🔄 Calling async text analysis callback...")
+                    self.logger.debug("🔄 Calling async text analysis callback...")
                     await self.text_analysis_callback(text_content)
                 else:
-                    self.logger.debug(f"🔄 Calling sync text analysis callback...")
+                    self.logger.debug("🔄 Calling sync text analysis callback...")
                     self.text_analysis_callback(text_content)
 
                 callback_time = (datetime.now() - callback_start).total_seconds() * 1000
                 total_time = conversion_time + callback_time
 
-                self.logger.info(f"✅ Browser content processing COMPLETE")
+                self.logger.info("✅ Browser content processing COMPLETE")
                 self.logger.debug(f"   Conversion: {conversion_time:.2f}ms")
                 self.logger.debug(f"   Analysis callback: {callback_time:.1f}ms")
                 self.logger.debug(f"   Total: {total_time:.1f}ms")
 
             except Exception as e:
                 error_time = (datetime.now() - conversion_start).total_seconds() * 1000
-                self.logger.error(f"💥 Error in text analysis callback after {error_time:.1f}ms: {e}")
+                self.logger.error(
+                    f"💥 Error in text analysis callback after {error_time:.1f}ms: {e}"
+                )
 
                 # Ultra-verbose error logging
                 import traceback
-                tb_lines = traceback.format_exc().split('\n')
-                self.logger.error(f"🐛 Callback error traceback:")
+
+                tb_lines = traceback.format_exc().split("\n")
+                self.logger.error("🐛 Callback error traceback:")
                 for i, line in enumerate(tb_lines, 1):
                     if line.strip():
                         self.logger.error(f"   {i:2d}: {line}")
         else:
-            self.logger.debug(f"⚠️  No text analysis callback registered")
+            self.logger.debug("⚠️  No text analysis callback registered")
 
     def set_text_analysis_callback(self, callback: callable) -> None:
         """Set callback for text analysis"""

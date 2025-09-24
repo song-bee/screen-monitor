@@ -89,46 +89,78 @@ class TextAnalyzer(AnalyzerBase):
 
             # Enhanced content analysis
             word_count = len(text_to_analyze.split())
-            line_count = len(text_to_analyze.split('\n'))
-            avg_word_length = len(text_to_analyze.replace(' ', '')) / max(word_count, 1)
+            line_count = len(text_to_analyze.split("\n"))
+            avg_word_length = len(text_to_analyze.replace(" ", "")) / max(word_count, 1)
 
-            self.logger.debug(f"📊 Content statistics: {word_count} words, {line_count} lines, avg word length: {avg_word_length:.1f}")
+            self.logger.debug(
+                f"📊 Content statistics: {word_count} words, {line_count} lines, avg word length: {avg_word_length:.1f}"
+            )
 
             # Show detailed content preview with line numbers
-            preview_lines = text_to_analyze[:300].split('\n')[:5]
-            self.logger.debug(f"📖 Content preview (first 5 lines):")
+            preview_lines = text_to_analyze[:300].split("\n")[:5]
+            self.logger.debug("📖 Content preview (first 5 lines):")
             for i, line in enumerate(preview_lines, 1):
                 line_display = line[:80] + "..." if len(line) > 80 else line
                 self.logger.debug(f"   {i:2d}: {repr(line_display)}")
 
             # Content type hints
             content_lower = text_to_analyze.lower()
-            gaming_keywords = sum(1 for word in ['game', 'play', 'level', 'score', 'win'] if word in content_lower)
-            social_keywords = sum(1 for word in ['like', 'share', 'follow', 'post'] if word in content_lower)
-            work_keywords = sum(1 for word in ['code', 'api', 'tutorial', 'documentation'] if word in content_lower)
+            gaming_keywords = sum(
+                1
+                for word in ["game", "play", "level", "score", "win"]
+                if word in content_lower
+            )
+            social_keywords = sum(
+                1
+                for word in ["like", "share", "follow", "post"]
+                if word in content_lower
+            )
+            work_keywords = sum(
+                1
+                for word in ["code", "api", "tutorial", "documentation"]
+                if word in content_lower
+            )
 
-            self.logger.debug(f"🎯 Content hints - Gaming: {gaming_keywords}, Social: {social_keywords}, Work: {work_keywords}")
+            self.logger.debug(
+                f"🎯 Content hints - Gaming: {gaming_keywords}, Social: {social_keywords}, Work: {work_keywords}"
+            )
 
             # Step 2: Prompt creation
             self.logger.debug("▶️  Step 2: ULTRA-VERBOSE PROMPT CREATION")
             prompt_start_time = datetime.now()
             prompt = self._create_analysis_prompt(text_to_analyze)
-            prompt_creation_time = (datetime.now() - prompt_start_time).total_seconds() * 1000
+            prompt_creation_time = (
+                datetime.now() - prompt_start_time
+            ).total_seconds() * 1000
 
-            self.logger.info(f"✅ Prompt creation COMPLETE in {prompt_creation_time:.2f}ms")
-            self.logger.debug(f"📏 Prompt statistics: {len(prompt):,} chars, {len(prompt.split()):,} words")
+            self.logger.info(
+                f"✅ Prompt creation COMPLETE in {prompt_creation_time:.2f}ms"
+            )
+            self.logger.debug(
+                f"📏 Prompt statistics: {len(prompt):,} chars, {len(prompt.split()):,} words"
+            )
 
             # Show prompt structure analysis
-            prompt_lines = prompt.split('\n')
-            instruction_lines = len([line for line in prompt_lines if line.strip().startswith('- ')])
-            example_lines = len([line for line in prompt_lines if 'example' in line.lower()])
+            prompt_lines = prompt.split("\n")
+            instruction_lines = len(
+                [line for line in prompt_lines if line.strip().startswith("- ")]
+            )
+            example_lines = len(
+                [line for line in prompt_lines if "example" in line.lower()]
+            )
 
-            self.logger.debug(f"📋 Prompt structure: {len(prompt_lines)} lines, {instruction_lines} instructions, {example_lines} examples")
+            self.logger.debug(
+                f"📋 Prompt structure: {len(prompt_lines)} lines, {instruction_lines} instructions, {example_lines} examples"
+            )
 
             # Show the actual prompt sections (more detailed)
-            prompt_sections = prompt.split('\n\n')
-            for i, section in enumerate(prompt_sections[:3], 1):  # Show first 3 sections
-                section_preview = section[:150] + "..." if len(section) > 150 else section
+            prompt_sections = prompt.split("\n\n")
+            for i, section in enumerate(
+                prompt_sections[:3], 1
+            ):  # Show first 3 sections
+                section_preview = (
+                    section[:150] + "..." if len(section) > 150 else section
+                )
                 self.logger.debug(f"📄 Prompt section {i}: {repr(section_preview)}")
 
             # Step 3: LLM Query
@@ -136,11 +168,11 @@ class TextAnalyzer(AnalyzerBase):
             llm_start_time = datetime.now()
 
             # Log query parameters
-            self.logger.debug(f"🤖 LLM Configuration:")
+            self.logger.debug("🤖 LLM Configuration:")
             self.logger.debug(f"   Model: {self.model_name}")
             self.logger.debug(f"   Endpoint: {self.ollama_url}/api/generate")
-            self.logger.debug(f"   Temperature: 0.1 (low for consistency)")
-            self.logger.debug(f"   Format: JSON (structured output)")
+            self.logger.debug("   Temperature: 0.1 (low for consistency)")
+            self.logger.debug("   Format: JSON (structured output)")
 
             llm_response = await self._query_llm(prompt)
             llm_query_time = (datetime.now() - llm_start_time).total_seconds() * 1000
@@ -149,49 +181,75 @@ class TextAnalyzer(AnalyzerBase):
 
             # Ultra-detailed LLM response logging
             if llm_response:
-                response_text = llm_response.get('response', 'No response')
-                self.logger.debug(f"📨 Raw LLM response analysis:")
+                response_text = llm_response.get("response", "No response")
+                self.logger.debug("📨 Raw LLM response analysis:")
                 self.logger.debug(f"   Length: {len(response_text):,} characters")
-                self.logger.debug(f"   Lines: {len(response_text.split(chr(10)))} lines")
+                self.logger.debug(
+                    f"   Lines: {len(response_text.split(chr(10)))} lines"
+                )
 
                 # Show full response in sections
                 if len(response_text) > 500:
                     # Show first 250 chars and last 250 chars
-                    self.logger.debug(f"📄 LLM Response (first 250 chars): {repr(response_text[:250])}")
-                    self.logger.debug(f"📄 LLM Response (last 250 chars): {repr(response_text[-250:])}")
+                    self.logger.debug(
+                        f"📄 LLM Response (first 250 chars): {repr(response_text[:250])}"
+                    )
+                    self.logger.debug(
+                        f"📄 LLM Response (last 250 chars): {repr(response_text[-250:])}"
+                    )
                 else:
-                    self.logger.debug(f"📄 Complete LLM Response: {repr(response_text)}")
+                    self.logger.debug(
+                        f"📄 Complete LLM Response: {repr(response_text)}"
+                    )
 
                 # Log ultra-detailed LLM performance metadata
-                if 'eval_count' in llm_response:
-                    self.logger.debug(f"🧠 LLM Performance:")
-                    self.logger.debug(f"   Tokens evaluated: {llm_response['eval_count']:,}")
+                if "eval_count" in llm_response:
+                    self.logger.debug("🧠 LLM Performance:")
+                    self.logger.debug(
+                        f"   Tokens evaluated: {llm_response['eval_count']:,}"
+                    )
 
-                if 'eval_duration' in llm_response:
-                    eval_duration_ms = llm_response['eval_duration'] / 1_000_000
-                    tokens_per_sec = llm_response.get('eval_count', 0) / (eval_duration_ms / 1000) if eval_duration_ms > 0 else 0
-                    self.logger.debug(f"   Evaluation time: {eval_duration_ms:.1f}ms ({tokens_per_sec:.1f} tokens/sec)")
+                if "eval_duration" in llm_response:
+                    eval_duration_ms = llm_response["eval_duration"] / 1_000_000
+                    tokens_per_sec = (
+                        llm_response.get("eval_count", 0) / (eval_duration_ms / 1000)
+                        if eval_duration_ms > 0
+                        else 0
+                    )
+                    self.logger.debug(
+                        f"   Evaluation time: {eval_duration_ms:.1f}ms ({tokens_per_sec:.1f} tokens/sec)"
+                    )
 
-                if 'total_duration' in llm_response:
-                    total_duration_ms = llm_response['total_duration'] / 1_000_000
-                    self.logger.debug(f"   Total LLM duration: {total_duration_ms:.1f}ms")
+                if "total_duration" in llm_response:
+                    total_duration_ms = llm_response["total_duration"] / 1_000_000
+                    self.logger.debug(
+                        f"   Total LLM duration: {total_duration_ms:.1f}ms"
+                    )
 
-                if 'load_duration' in llm_response:
-                    load_duration_ms = llm_response['load_duration'] / 1_000_000
+                if "load_duration" in llm_response:
+                    load_duration_ms = llm_response["load_duration"] / 1_000_000
                     self.logger.debug(f"   Model load time: {load_duration_ms:.1f}ms")
 
-                if 'prompt_eval_count' in llm_response:
-                    self.logger.debug(f"   Prompt tokens: {llm_response['prompt_eval_count']:,}")
+                if "prompt_eval_count" in llm_response:
+                    self.logger.debug(
+                        f"   Prompt tokens: {llm_response['prompt_eval_count']:,}"
+                    )
 
                 # Try to parse and preview JSON structure
                 try:
                     parsed_response = json.loads(response_text)
-                    self.logger.debug(f"🔍 Parsed JSON structure:")
+                    self.logger.debug("🔍 Parsed JSON structure:")
                     for key, value in parsed_response.items():
-                        value_preview = str(value)[:100] + "..." if len(str(value)) > 100 else str(value)
+                        value_preview = (
+                            str(value)[:100] + "..."
+                            if len(str(value)) > 100
+                            else str(value)
+                        )
                         self.logger.debug(f"   {key}: {repr(value_preview)}")
                 except json.JSONDecodeError:
-                    self.logger.debug("⚠️  Response is not valid JSON - will attempt parsing in next step")
+                    self.logger.debug(
+                        "⚠️  Response is not valid JSON - will attempt parsing in next step"
+                    )
 
             # Step 4: Response parsing
             self.logger.debug("▶️  Step 4: ULTRA-VERBOSE RESPONSE PARSING")
@@ -202,29 +260,41 @@ class TextAnalyzer(AnalyzerBase):
             self.logger.info(f"✅ Response parsing COMPLETE in {parse_time:.2f}ms")
 
             # Step 5: Final result logging with ultra-verbose details
-            total_analysis_time = (datetime.now() - analysis_start_time).total_seconds() * 1000
+            total_analysis_time = (
+                datetime.now() - analysis_start_time
+            ).total_seconds() * 1000
 
             if result:
                 self.logger.info("🎉 TEXT ANALYSIS SUCCESSFUL!")
-                self.logger.info(f"🎯 FINAL RESULT:")
+                self.logger.info("🎯 FINAL RESULT:")
                 self.logger.info(f"   Category: {result.category.value.upper()}")
-                self.logger.info(f"   Confidence: {result.confidence:.4f} ({result.confidence*100:.2f}%)")
+                self.logger.info(
+                    f"   Confidence: {result.confidence:.4f} ({result.confidence*100:.2f}%)"
+                )
                 self.logger.info(f"   Processing time: {total_analysis_time:.1f}ms")
 
                 # Ultra-detailed evidence logging
                 if result.evidence:
                     evidence = result.evidence
-                    self.logger.info(f"🔍 ULTRA-VERBOSE EVIDENCE ANALYSIS:")
+                    self.logger.info("🔍 ULTRA-VERBOSE EVIDENCE ANALYSIS:")
 
                     # LLM-specific evidence with detailed formatting
-                    self.logger.info(f"   🤖 LLM Classification:")
-                    self.logger.info(f"      Raw Category: '{evidence.get('llm_category', 'unknown')}'")
-                    self.logger.info(f"      Subcategory: '{evidence.get('subcategory', 'unclear')}'")
-                    self.logger.info(f"      Model: {evidence.get('model_used', 'unknown')}")
+                    self.logger.info("   🤖 LLM Classification:")
+                    self.logger.info(
+                        f"      Raw Category: '{evidence.get('llm_category', 'unknown')}'"
+                    )
+                    self.logger.info(
+                        f"      Subcategory: '{evidence.get('subcategory', 'unclear')}'"
+                    )
+                    self.logger.info(
+                        f"      Model: {evidence.get('model_used', 'unknown')}"
+                    )
 
                     # Keywords with detailed analysis
-                    keywords = evidence.get('keywords', [])
-                    self.logger.info(f"   🔑 Keywords Analysis ({len(keywords)} total):")
+                    keywords = evidence.get("keywords", [])
+                    self.logger.info(
+                        f"   🔑 Keywords Analysis ({len(keywords)} total):"
+                    )
                     if keywords:
                         # Group by keyword length and type
                         short_words = [k for k in keywords if len(k) <= 6]
@@ -238,38 +308,52 @@ class TextAnalyzer(AnalyzerBase):
                         if long_words:
                             self.logger.info(f"      Long (>12): {long_words}")
                     else:
-                        self.logger.info(f"      No keywords identified by LLM")
+                        self.logger.info("      No keywords identified by LLM")
 
                     # Reasoning with sentence-by-sentence analysis
-                    reasoning = evidence.get('reasoning', 'No reasoning provided')
-                    self.logger.info(f"   💭 LLM Reasoning Analysis:")
+                    reasoning = evidence.get("reasoning", "No reasoning provided")
+                    self.logger.info("   💭 LLM Reasoning Analysis:")
                     self.logger.info(f"      Length: {len(reasoning)} characters")
 
                     # Break down reasoning into sentences
-                    sentences = [s.strip() + '.' for s in reasoning.split('.') if s.strip()]
+                    sentences = [
+                        s.strip() + "." for s in reasoning.split(".") if s.strip()
+                    ]
                     self.logger.info(f"      Sentence count: {len(sentences)}")
 
-                    for i, sentence in enumerate(sentences[:6], 1):  # Show first 6 sentences
+                    for i, sentence in enumerate(
+                        sentences[:6], 1
+                    ):  # Show first 6 sentences
                         self.logger.info(f"      {i:2d}. {sentence}")
 
                     if len(sentences) > 6:
-                        self.logger.info(f"      ... plus {len(sentences) - 6} more sentences")
+                        self.logger.info(
+                            f"      ... plus {len(sentences) - 6} more sentences"
+                        )
 
                     # Technical metadata with enhanced details
-                    self.logger.debug(f"   🔧 Technical Metadata:")
-                    self.logger.debug(f"      Original text length: {evidence.get('text_length', 'unknown'):,}")
-                    self.logger.debug(f"      Text source: {evidence.get('text_source', 'unknown')}")
-                    self.logger.debug(f"      Processing timestamp: {datetime.now().isoformat()}")
+                    self.logger.debug("   🔧 Technical Metadata:")
+                    self.logger.debug(
+                        f"      Original text length: {evidence.get('text_length', 'unknown'):,}"
+                    )
+                    self.logger.debug(
+                        f"      Text source: {evidence.get('text_source', 'unknown')}"
+                    )
+                    self.logger.debug(
+                        f"      Processing timestamp: {datetime.now().isoformat()}"
+                    )
 
                     # All evidence keys for debugging
                     all_keys = list(evidence.keys())
                     self.logger.debug(f"      All evidence fields: {all_keys}")
 
                 # Ultra-detailed performance breakdown
-                self.logger.info(f"📊 ULTRA-VERBOSE PERFORMANCE BREAKDOWN:")
-                self.logger.info(f"   ⚡ Stage timings:")
+                self.logger.info("📊 ULTRA-VERBOSE PERFORMANCE BREAKDOWN:")
+                self.logger.info("   ⚡ Stage timings:")
                 self.logger.info(f"      1. Preprocessing: {0:.1f}ms (instant)")
-                self.logger.info(f"      2. Prompt creation: {prompt_creation_time:.2f}ms")
+                self.logger.info(
+                    f"      2. Prompt creation: {prompt_creation_time:.2f}ms"
+                )
                 self.logger.info(f"      3. LLM query: {llm_query_time:.1f}ms")
                 self.logger.info(f"      4. Response parsing: {parse_time:.2f}ms")
                 self.logger.info(f"      📈 TOTAL: {total_analysis_time:.1f}ms")
@@ -279,22 +363,29 @@ class TextAnalyzer(AnalyzerBase):
                 self.logger.debug(f"   📈 Efficiency: {chars_per_ms:.1f} chars/ms")
 
             else:
-                self.logger.error(f"❌ TEXT ANALYSIS FAILED after {total_analysis_time:.1f}ms")
-                self.logger.error(f"   No detection result was generated")
-                self.logger.error(f"   Check previous log entries for detailed error information")
+                self.logger.error(
+                    f"❌ TEXT ANALYSIS FAILED after {total_analysis_time:.1f}ms"
+                )
+                self.logger.error("   No detection result was generated")
+                self.logger.error(
+                    "   Check previous log entries for detailed error information"
+                )
 
             return result
 
         except Exception as e:
             total_time = (datetime.now() - analysis_start_time).total_seconds() * 1000
-            self.logger.error(f"💥 CRITICAL ERROR in text analysis after {total_time:.1f}ms")
+            self.logger.error(
+                f"💥 CRITICAL ERROR in text analysis after {total_time:.1f}ms"
+            )
             self.logger.error(f"   Error message: {str(e)}")
             self.logger.error(f"   Error type: {type(e).__name__}")
 
             # Ultra-verbose error details
             import traceback
-            tb_lines = traceback.format_exc().split('\n')
-            self.logger.error(f"🐛 ULTRA-VERBOSE ERROR TRACEBACK:")
+
+            tb_lines = traceback.format_exc().split("\n")
+            self.logger.error("🐛 ULTRA-VERBOSE ERROR TRACEBACK:")
             for i, line in enumerate(tb_lines, 1):
                 if line.strip():
                     self.logger.error(f"   {i:2d}: {line}")

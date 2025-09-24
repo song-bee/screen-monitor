@@ -7,7 +7,6 @@ with browser integration enabled and providing testing utilities.
 """
 
 import asyncio
-import json
 import sys
 from pathlib import Path
 
@@ -32,22 +31,22 @@ async def test_browser_integration():
                 "server": {
                     "host": "localhost",
                     "port": 8888,
-                    "api_key": "asam-browser-integration"
-                }
+                    "api_key": "asam-browser-integration",
+                },
             }
         },
         "detection": {
             "confidence_threshold": 0.6,
-            "text_detection": {
-                "llm_model": "llama3.2:3b"
-            }
-        }
+            "text_detection": {"llm_model": "llama3.2:3b"},
+        },
     }
 
     try:
         # Initialize browser extension manager
         print("📱 Initializing Browser Extension Manager...")
-        browser_manager = BrowserExtensionManager(config.get("integrations", {}).get("browser", {}))
+        browser_manager = BrowserExtensionManager(
+            config.get("integrations", {}).get("browser", {})
+        )
 
         # Start browser integration
         if await browser_manager.start():
@@ -85,7 +84,9 @@ async def test_browser_integration():
                 print(f"\n📨 Received content from {browser_content.browser_type}:")
                 print(f"   📄 Title: {browser_content.title}")
                 print(f"   🔗 URL: {browser_content.url}")
-                print(f"   📝 Content length: {len(browser_content.text_content)} characters")
+                print(
+                    f"   📝 Content length: {len(browser_content.text_content)} characters"
+                )
                 print(f"   🏷️  Tab ID: {browser_content.tab_id}")
 
                 # Show content preview (first 200 characters)
@@ -93,11 +94,11 @@ async def test_browser_integration():
                     content_preview = browser_content.text_content.strip()[:200]
                     if len(browser_content.text_content) > 200:
                         content_preview += "..."
-                    print(f"   📖 Content preview:")
+                    print("   📖 Content preview:")
                     print(f"      {repr(content_preview)}")
 
                 if browser_content.metadata:
-                    print(f"   📊 Metadata:")
+                    print("   📊 Metadata:")
                     for key, value in browser_content.metadata.items():
                         if isinstance(value, str) and len(value) > 50:
                             value_display = value[:47] + "..."
@@ -123,6 +124,7 @@ async def test_browser_integration():
     except Exception as e:
         print(f"❌ Test failed with error: {e}")
         import traceback
+
         traceback.print_exc()
         return False
 
@@ -162,8 +164,12 @@ async def test_with_full_asam():
                 print(f"\n📨 Browser content received: {browser_content.title}")
 
                 # Convert to TextContent and analyze
-                text_content = browser_manager.server.convert_to_text_content(browser_content)
-                print(f"   📝 Converted to TextContent: {len(text_content.content)} chars")
+                text_content = browser_manager.server.convert_to_text_content(
+                    browser_content
+                )
+                print(
+                    f"   📝 Converted to TextContent: {len(text_content.content)} chars"
+                )
 
                 # You could integrate this with ASAM's detection engine here
                 # For now, just log it
@@ -187,13 +193,14 @@ async def test_with_full_asam():
     except Exception as e:
         print(f"❌ Full ASAM test failed: {e}")
         import traceback
+
         traceback.print_exc()
 
     finally:
         # Cleanup
         if browser_manager:
             await browser_manager.stop()
-        if 'service' in locals():
+        if "service" in locals():
             await service.stop()
         print("✅ Full ASAM test completed")
 

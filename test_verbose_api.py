@@ -4,18 +4,18 @@ Test verbose API interaction with detailed content and LLM response display
 """
 
 import asyncio
-import json
 import sys
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
+
 import aiohttp
 
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
-from asam.integrations.browser import BrowserExtensionManager
 from asam.core.detection.analyzers.text import TextAnalyzer
 from asam.core.detection.types import TextContent
+from asam.integrations.browser import BrowserExtensionManager
 
 
 async def test_verbose_api_with_llm():
@@ -39,7 +39,7 @@ async def test_verbose_api_with_llm():
             - Watch top streamers for pro tips
 
             Don't forget to subscribe for more gaming content and hit the notification bell!""",
-            "contentType": "gaming"
+            "contentType": "gaming",
         },
         {
             "title": "Python Web Development Tutorial",
@@ -54,7 +54,7 @@ async def test_verbose_api_with_llm():
             - Testing methodologies
 
             By the end of this course, you'll be able to build production-ready web applications using Python frameworks.""",
-            "contentType": "education"
+            "contentType": "education",
         },
         {
             "title": "Breaking: Celebrity Drama Unfolds",
@@ -64,8 +64,8 @@ async def test_verbose_api_with_llm():
             The photos show them together at a luxury restaurant, sparking dating rumors. Fans are going crazy on Twitter and Instagram with hashtags trending worldwide.
 
             This comes just weeks after the controversial breakup that shocked the entertainment world. Stay tuned for more juicy details and exclusive photos!""",
-            "contentType": "entertainment"
-        }
+            "contentType": "entertainment",
+        },
     ]
 
     # Start browser integration server
@@ -84,7 +84,7 @@ async def test_verbose_api_with_llm():
             return
 
         print("✅ All components initialized")
-        print(f"🌐 Server running at: http://localhost:8888")
+        print("🌐 Server running at: http://localhost:8888")
 
         # Test each content sample
         for i, test_content in enumerate(test_contents, 1):
@@ -93,22 +93,22 @@ async def test_verbose_api_with_llm():
             print(f"{'='*80}")
 
             # Display original content
-            print(f"📄 ORIGINAL CONTENT:")
+            print("📄 ORIGINAL CONTENT:")
             print(f"   Title: {test_content['title']}")
             print(f"   URL: {test_content['url']}")
             print(f"   Type: {test_content['contentType']}")
             print(f"   Content Length: {len(test_content['content'])} characters")
 
-            print(f"\n📝 FULL CONTENT:")
+            print("\n📝 FULL CONTENT:")
             print("-" * 50)
             # Show content with proper indentation
-            content_lines = test_content['content'].strip().split('\n')
+            content_lines = test_content["content"].strip().split("\n")
             for line in content_lines:
                 print(f"   {line}")
             print("-" * 50)
 
             # Send via API
-            print(f"\n📡 SENDING TO ASAM API...")
+            print("\n📡 SENDING TO ASAM API...")
             api_payload = {
                 "url": test_content["url"],
                 "title": test_content["title"],
@@ -118,16 +118,16 @@ async def test_verbose_api_with_llm():
                 "metadata": {
                     "contentType": test_content["contentType"],
                     "source": "api_test",
-                    "timestamp": datetime.now().isoformat()
-                }
+                    "timestamp": datetime.now().isoformat(),
+                },
             }
 
             async with aiohttp.ClientSession() as session:
                 try:
                     async with session.post(
-                        'http://localhost:8888/api/content',
+                        "http://localhost:8888/api/content",
                         json=api_payload,
-                        headers={'X-API-Key': 'asam-browser-integration'}
+                        headers={"X-API-Key": "asam-browser-integration"},
                     ) as response:
                         if response.status == 200:
                             result = await response.json()
@@ -141,7 +141,7 @@ async def test_verbose_api_with_llm():
                     continue
 
             # Manual LLM Analysis for comparison
-            print(f"\n🧠 LLM ANALYSIS:")
+            print("\n🧠 LLM ANALYSIS:")
             print("-" * 40)
 
             try:
@@ -155,8 +155,8 @@ async def test_verbose_api_with_llm():
                     metadata={
                         "url": test_content["url"],
                         "title": test_content["title"],
-                        "contentType": test_content["contentType"]
-                    }
+                        "contentType": test_content["contentType"],
+                    },
                 )
 
                 # Perform analysis
@@ -170,32 +170,36 @@ async def test_verbose_api_with_llm():
                         evidence = detection_result.evidence
 
                         # Show LLM reasoning
-                        if 'reasoning' in evidence:
-                            reasoning = evidence['reasoning']
-                            print(f"\\n   💭 LLM REASONING:")
+                        if "reasoning" in evidence:
+                            reasoning = evidence["reasoning"]
+                            print("\\n   💭 LLM REASONING:")
                             # Format reasoning with proper indentation
-                            reasoning_lines = reasoning.split('. ')
+                            reasoning_lines = reasoning.split(". ")
                             for line in reasoning_lines:
                                 if line.strip():
                                     print(f"      • {line.strip()}")
 
                         # Show keywords
-                        if 'keywords' in evidence and evidence['keywords']:
-                            keywords = evidence['keywords']
-                            print(f"\\n   🔑 KEYWORDS IDENTIFIED: {', '.join(keywords)}")
+                        if "keywords" in evidence and evidence["keywords"]:
+                            keywords = evidence["keywords"]
+                            print(
+                                f"\\n   🔑 KEYWORDS IDENTIFIED: {', '.join(keywords)}"
+                            )
 
                         # Show subcategory
-                        if 'subcategory' in evidence:
+                        if "subcategory" in evidence:
                             print(f"   🏷️  SUBCATEGORY: {evidence['subcategory']}")
 
                         # Show LLM technical details
-                        print(f"\\n   🤖 TECHNICAL DETAILS:")
+                        print("\\n   🤖 TECHNICAL DETAILS:")
                         print(f"      Model: {evidence.get('model_used', 'unknown')}")
-                        print(f"      Input length: {evidence.get('text_length', 'unknown')} chars")
+                        print(
+                            f"      Input length: {evidence.get('text_length', 'unknown')} chars"
+                        )
                         print(f"      Source: {evidence.get('text_source', 'unknown')}")
 
                     # Action recommendation
-                    if detection_result.category.value == 'entertainment':
+                    if detection_result.category.value == "entertainment":
                         if detection_result.confidence >= 0.8:
                             action = "🔴 HIGH RISK - WOULD BLOCK"
                         elif detection_result.confidence >= 0.6:
@@ -213,6 +217,7 @@ async def test_verbose_api_with_llm():
             except Exception as e:
                 print(f"   ❌ LLM Analysis failed: {e}")
                 import traceback
+
                 traceback.print_exc()
 
             print(f"\\n✅ Test case {i} completed")
@@ -223,12 +228,13 @@ async def test_verbose_api_with_llm():
                 print("⏳ Waiting 2 seconds before next test...")
                 await asyncio.sleep(2)
 
-        print(f"\\n🎉 ALL VERBOSE TESTS COMPLETED!")
+        print("\\n🎉 ALL VERBOSE TESTS COMPLETED!")
         print("=" * 80)
 
     except Exception as e:
         print(f"❌ Test failed: {e}")
         import traceback
+
         traceback.print_exc()
 
     finally:

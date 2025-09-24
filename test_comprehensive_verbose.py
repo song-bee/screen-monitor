@@ -13,20 +13,17 @@ Maximum verbosity test combining:
 
 import asyncio
 import json
-import sys
 import logging
+import sys
 import time
-from pathlib import Path
 from datetime import datetime
-from typing import Dict, Any
-import aiohttp
+from pathlib import Path
 
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
-from asam.integrations.browser import BrowserExtensionManager
 from asam.core.detection.analyzers.text import TextAnalyzer
-from asam.core.detection.types import TextContent
+from asam.integrations.browser import BrowserExtensionManager
 
 
 class ComprehensiveVerboseLogger:
@@ -39,6 +36,7 @@ class ComprehensiveVerboseLogger:
 
     def setup_enhanced_logging(self):
         """Setup enhanced logging with detailed formatting"""
+
         # Create custom formatter with even more detail
         class MaxVerboseFormatter(logging.Formatter):
             def format(self, record):
@@ -46,20 +44,20 @@ class ComprehensiveVerboseLogger:
 
                 # Enhanced color coding
                 colors = {
-                    'DEBUG': '\033[96m',     # Bright Cyan
-                    'INFO': '\033[92m',      # Bright Green
-                    'WARNING': '\033[93m',   # Bright Yellow
-                    'ERROR': '\033[91m',     # Bright Red
-                    'CRITICAL': '\033[95m'   # Bright Magenta
+                    "DEBUG": "\033[96m",  # Bright Cyan
+                    "INFO": "\033[92m",  # Bright Green
+                    "WARNING": "\033[93m",  # Bright Yellow
+                    "ERROR": "\033[91m",  # Bright Red
+                    "CRITICAL": "\033[95m",  # Bright Magenta
                 }
-                reset = '\033[0m'
-                bold = '\033[1m'
+                reset = "\033[0m"
+                bold = "\033[1m"
 
-                color = colors.get(record.levelname, '')
+                color = colors.get(record.levelname, "")
                 level_display = f"{color}{bold}[{record.levelname:<8}]{reset}"
 
                 # Enhanced module display
-                module_parts = record.name.split('.')
+                module_parts = record.name.split(".")
                 if len(module_parts) > 2:
                     module_display = f"{module_parts[-2]}.{module_parts[-1]}"
                 else:
@@ -67,7 +65,9 @@ class ComprehensiveVerboseLogger:
                 module_display = f"{module_display:<20}"
 
                 # Thread/task info
-                thread_info = f"[T:{record.thread:x}]" if hasattr(record, 'thread') else ""
+                thread_info = (
+                    f"[T:{record.thread:x}]" if hasattr(record, "thread") else ""
+                )
 
                 return f"{timestamp} | {level_display} | {module_display} | {thread_info} {record.getMessage()}"
 
@@ -87,10 +87,10 @@ class ComprehensiveVerboseLogger:
 
         # Set all ASAM loggers to maximum verbosity
         asam_loggers = [
-            'asam.core.detection.analyzers.text',
-            'asam.integrations.browser',
-            'asam.core.detection.engine',
-            'asam.core.service'
+            "asam.core.detection.analyzers.text",
+            "asam.integrations.browser",
+            "asam.core.detection.engine",
+            "asam.core.service",
         ]
 
         for logger_name in asam_loggers:
@@ -118,15 +118,19 @@ class ComprehensiveVerboseLogger:
         session_time = (datetime.now() - self.session_start).total_seconds()
 
         print(f"\n{'▓' * 140}")
-        print(f"🚀 ANALYSIS #{self.analysis_count:03d} | {timestamp} | Session: {session_time:.1f}s")
+        print(
+            f"🚀 ANALYSIS #{self.analysis_count:03d} | {timestamp} | Session: {session_time:.1f}s"
+        )
         print(f"{'▓' * 140}")
 
-        print(f"📊 CONTENT METADATA:")
+        print("📊 CONTENT METADATA:")
         print(f"   📄 Title: {content_info.get('title', 'Unknown')}")
         print(f"   🔗 URL: {content_info.get('url', 'Unknown')}")
         print(f"   🏷️  Tab: {content_info.get('tab_id', 'Unknown')}")
         print(f"   🌐 Browser: {content_info.get('browser_type', 'Unknown')}")
-        print(f"   📏 Content Length: {content_info.get('content_length', 0):,} characters")
+        print(
+            f"   📏 Content Length: {content_info.get('content_length', 0):,} characters"
+        )
         print(f"   ⏱️  Processing Started: {timestamp}")
 
 
@@ -146,23 +150,23 @@ def format_json_with_colors(data, indent=2):
 
 def display_content_analysis(content, max_preview=600, max_lines=30):
     """Display content with intelligent truncation and analysis"""
-    lines = content.split('\n')
+    lines = content.split("\n")
     char_count = len(content)
     line_count = len(lines)
 
-    print(f"📝 CONTENT ANALYSIS:")
+    print("📝 CONTENT ANALYSIS:")
     print(f"   📊 Statistics: {char_count:,} chars, {line_count} lines")
     print(f"   📈 Avg line length: {char_count/line_count:.1f} chars/line")
 
     # Content type heuristics
     content_lower = content.lower()
     indicators = {
-        'Gaming': ['game', 'play', 'win', 'level', 'score', 'gaming'],
-        'Social': ['like', 'share', 'comment', 'follow', 'social'],
-        'Educational': ['learn', 'tutorial', 'course', 'study', 'education'],
-        'Entertainment': ['video', 'watch', 'funny', 'entertainment', 'movie'],
-        'News': ['breaking', 'news', 'report', 'today', 'update'],
-        'Technical': ['code', 'programming', 'development', 'api', 'technical']
+        "Gaming": ["game", "play", "win", "level", "score", "gaming"],
+        "Social": ["like", "share", "comment", "follow", "social"],
+        "Educational": ["learn", "tutorial", "course", "study", "education"],
+        "Entertainment": ["video", "watch", "funny", "entertainment", "movie"],
+        "News": ["breaking", "news", "report", "today", "update"],
+        "Technical": ["code", "programming", "development", "api", "technical"],
     }
 
     detected_types = []
@@ -171,16 +175,22 @@ def display_content_analysis(content, max_preview=600, max_lines=30):
         if matches >= 2:
             detected_types.append(f"{content_type}({matches})")
 
-    print(f"   🎯 Content Type Hints: {', '.join(detected_types) if detected_types else 'Mixed/Unclear'}")
+    print(
+        f"   🎯 Content Type Hints: {', '.join(detected_types) if detected_types else 'Mixed/Unclear'}"
+    )
 
-    print(f"\n📖 CONTENT PREVIEW (showing {min(max_preview, char_count)} of {char_count} chars):")
+    print(
+        f"\n📖 CONTENT PREVIEW (showing {min(max_preview, char_count)} of {char_count} chars):"
+    )
     print("┌" + "─" * 118 + "┐")
 
     displayed_chars = 0
     for i, line in enumerate(lines[:max_lines], 1):
         if displayed_chars >= max_preview:
             remaining_lines = len(lines) - i + 1
-            print(f"│ ... [{remaining_lines} more lines, {char_count - displayed_chars:,} more chars] ...{' ' * 40}│")
+            print(
+                f"│ ... [{remaining_lines} more lines, {char_count - displayed_chars:,} more chars] ...{' ' * 40}│"
+            )
             break
 
         line_display = line[:116] if len(line) > 116 else line
@@ -195,9 +205,13 @@ async def comprehensive_verbose_test():
     """Run comprehensive ultra-verbose test"""
 
     verbose_logger = ComprehensiveVerboseLogger()
-    verbose_logger.print_mega_header("🔬 COMPREHENSIVE ULTRA-VERBOSE ASAM ANALYSIS SUITE 🔬")
+    verbose_logger.print_mega_header(
+        "🔬 COMPREHENSIVE ULTRA-VERBOSE ASAM ANALYSIS SUITE 🔬"
+    )
 
-    print(f"🚀 Session Started: {verbose_logger.session_start.strftime('%Y-%m-%d %H:%M:%S')}")
+    print(
+        f"🚀 Session Started: {verbose_logger.session_start.strftime('%Y-%m-%d %H:%M:%S')}"
+    )
     print(f"🖥️  Platform: {sys.platform}")
     print(f"🐍 Python: {sys.version.split()[0]}")
     print(f"📂 Working Dir: {Path.cwd()}")
@@ -234,7 +248,7 @@ async def comprehensive_verbose_test():
 
     # Display server information
     server_info = browser_manager.get_server_info()
-    print(f"\n🌐 Server Details:")
+    print("\n🌐 Server Details:")
     print(f"   🔗 API Endpoint: {server_info['endpoint']}")
     print(f"   📊 Status Endpoint: {server_info['status_endpoint']}")
     print(f"   🔑 API Key: {browser_manager.server.api_key}")
@@ -246,31 +260,39 @@ async def comprehensive_verbose_test():
         # Enhanced content callback with maximum verbosity
         async def ultra_verbose_content_handler(browser_content):
             content_info = {
-                'title': browser_content.title,
-                'url': browser_content.url,
-                'tab_id': browser_content.tab_id,
-                'browser_type': browser_content.browser_type,
-                'content_length': len(browser_content.text_content),
-                'timestamp': browser_content.timestamp
+                "title": browser_content.title,
+                "url": browser_content.url,
+                "tab_id": browser_content.tab_id,
+                "browser_type": browser_content.browser_type,
+                "content_length": len(browser_content.text_content),
+                "timestamp": browser_content.timestamp,
             }
 
-            verbose_logger.print_analysis_header(verbose_logger.analysis_count, content_info)
+            verbose_logger.print_analysis_header(
+                verbose_logger.analysis_count, content_info
+            )
 
             # Display ultra-detailed content analysis
             display_content_analysis(browser_content.text_content)
 
             # Metadata deep dive
             if browser_content.metadata:
-                print(f"\n🔍 METADATA DEEP DIVE:")
+                print("\n🔍 METADATA DEEP DIVE:")
                 for key, value in browser_content.metadata.items():
-                    value_display = str(value)[:100] + "..." if len(str(value)) > 100 else str(value)
+                    value_display = (
+                        str(value)[:100] + "..."
+                        if len(str(value)) > 100
+                        else str(value)
+                    )
                     print(f"   📊 {key}: {value_display}")
 
             verbose_logger.print_section_divider("🧠 LLM ANALYSIS PIPELINE", "─", 100)
 
             # Convert to TextContent with timing
             conversion_start = time.perf_counter()
-            text_content = browser_manager.server.convert_to_text_content(browser_content)
+            text_content = browser_manager.server.convert_to_text_content(
+                browser_content
+            )
             conversion_time = time.perf_counter() - conversion_start
 
             print(f"📦 TextContent Conversion: {conversion_time*1000:.2f}ms")
@@ -280,8 +302,10 @@ async def comprehensive_verbose_test():
 
             # Perform LLM analysis with ultra-detailed tracking
             analysis_start = time.perf_counter()
-            print(f"\n⚡ Starting LLM Analysis Pipeline...")
-            print(f"   ⏰ Analysis Start: {datetime.now().strftime('%H:%M:%S.%f')[:-3]}")
+            print("\n⚡ Starting LLM Analysis Pipeline...")
+            print(
+                f"   ⏰ Analysis Start: {datetime.now().strftime('%H:%M:%S.%f')[:-3]}"
+            )
 
             try:
                 detection_result = await text_analyzer.analyze(text_content)
@@ -292,7 +316,9 @@ async def comprehensive_verbose_test():
 
                     print(f"✅ Analysis SUCCESS in {analysis_time*1000:.1f}ms")
                     print(f"🎯 Category: {detection_result.category.value.upper()}")
-                    print(f"🔢 Confidence: {detection_result.confidence:.4f} ({detection_result.confidence*100:.1f}%)")
+                    print(
+                        f"🔢 Confidence: {detection_result.confidence:.4f} ({detection_result.confidence*100:.1f}%)"
+                    )
                     print(f"🔧 Analyzer: {detection_result.analyzer_type.value}")
 
                     # Confidence level analysis
@@ -315,17 +341,29 @@ async def comprehensive_verbose_test():
                     if detection_result.evidence:
                         evidence = detection_result.evidence
 
-                        verbose_logger.print_section_divider("🔍 EVIDENCE ANALYSIS", "·", 60)
+                        verbose_logger.print_section_divider(
+                            "🔍 EVIDENCE ANALYSIS", "·", 60
+                        )
 
-                        print(f"🤖 LLM Details:")
-                        print(f"   📦 Model Used: {evidence.get('model_used', 'unknown')}")
-                        print(f"   📝 LLM Category: {evidence.get('llm_category', 'unknown')}")
-                        print(f"   🏷️  Subcategory: {evidence.get('subcategory', 'unclear')}")
-                        print(f"   📏 Input Length: {evidence.get('text_length', 'unknown')} chars")
-                        print(f"   📡 Text Source: {evidence.get('text_source', 'unknown')}")
+                        print("🤖 LLM Details:")
+                        print(
+                            f"   📦 Model Used: {evidence.get('model_used', 'unknown')}"
+                        )
+                        print(
+                            f"   📝 LLM Category: {evidence.get('llm_category', 'unknown')}"
+                        )
+                        print(
+                            f"   🏷️  Subcategory: {evidence.get('subcategory', 'unclear')}"
+                        )
+                        print(
+                            f"   📏 Input Length: {evidence.get('text_length', 'unknown')} chars"
+                        )
+                        print(
+                            f"   📡 Text Source: {evidence.get('text_source', 'unknown')}"
+                        )
 
                         # Keywords analysis
-                        keywords = evidence.get('keywords', [])
+                        keywords = evidence.get("keywords", [])
                         print(f"\n🔑 KEYWORDS ANALYSIS ({len(keywords)} found):")
                         if keywords:
                             # Group keywords by length for better display
@@ -340,23 +378,29 @@ async def comprehensive_verbose_test():
                             print("   ❌ No keywords identified")
 
                         # Reasoning deep dive
-                        reasoning = evidence.get('reasoning', 'No reasoning provided')
-                        print(f"\n💭 LLM REASONING ANALYSIS:")
+                        reasoning = evidence.get("reasoning", "No reasoning provided")
+                        print("\n💭 LLM REASONING ANALYSIS:")
                         print(f"   📏 Length: {len(reasoning)} characters")
 
                         # Split reasoning into sentences for better display
-                        sentences = [s.strip() for s in reasoning.split('.') if s.strip()]
+                        sentences = [
+                            s.strip() for s in reasoning.split(".") if s.strip()
+                        ]
                         print(f"   📄 Sentences: {len(sentences)}")
-                        print(f"   📖 Full Reasoning:")
+                        print("   📖 Full Reasoning:")
 
-                        for i, sentence in enumerate(sentences[:8], 1):  # Show max 8 sentences
+                        for i, sentence in enumerate(
+                            sentences[:8], 1
+                        ):  # Show max 8 sentences
                             print(f"      {i:2d}. {sentence}")
 
                         if len(sentences) > 8:
                             print(f"      ... [{len(sentences) - 8} more sentences]")
 
                     # Decision analysis
-                    verbose_logger.print_section_divider("⚖️  DECISION ANALYSIS", "·", 60)
+                    verbose_logger.print_section_divider(
+                        "⚖️  DECISION ANALYSIS", "·", 60
+                    )
 
                     category = detection_result.category.value
                     confidence = detection_result.confidence
@@ -372,22 +416,28 @@ async def comprehensive_verbose_test():
                             action = f"{action_color} MONITOR - Low confidence, continue observation"
                             risk_level = "LOW RISK"
                     elif category == "productive":
-                        action = f"✅ ALLOW - Productive content detected"
+                        action = "✅ ALLOW - Productive content detected"
                         risk_level = "PRODUCTIVE"
                     else:
-                        action = f"🤔 REVIEW - Unclear content type"
+                        action = "🤔 REVIEW - Unclear content type"
                         risk_level = "UNKNOWN"
 
                     print(f"🎯 Risk Level: {risk_level}")
                     print(f"⚡ Recommended Action: {action}")
-                    print(f"🔒 Would Lock Screen: {'YES' if 'BLOCK' in action else 'NO'}")
+                    print(
+                        f"🔒 Would Lock Screen: {'YES' if 'BLOCK' in action else 'NO'}"
+                    )
 
                     # Performance metrics
-                    verbose_logger.print_section_divider("📊 PERFORMANCE METRICS", "·", 60)
-                    print(f"⏱️  Timing Breakdown:")
+                    verbose_logger.print_section_divider(
+                        "📊 PERFORMANCE METRICS", "·", 60
+                    )
+                    print("⏱️  Timing Breakdown:")
                     print(f"   🔄 Content Conversion: {conversion_time*1000:.2f}ms")
                     print(f"   🧠 LLM Analysis: {analysis_time*1000:.1f}ms")
-                    print(f"   📊 Total Processing: {(conversion_time + analysis_time)*1000:.1f}ms")
+                    print(
+                        f"   📊 Total Processing: {(conversion_time + analysis_time)*1000:.1f}ms"
+                    )
 
                 else:
                     analysis_time = time.perf_counter() - analysis_start
@@ -401,12 +451,15 @@ async def comprehensive_verbose_test():
                 print(f"🔧 Error Type: {type(e).__name__}")
 
                 import traceback
+
                 verbose_logger.print_section_divider("🐛 ERROR TRACEBACK", "!", 80)
                 traceback.print_exc()
 
             # Analysis completion
             print(f"\n{'▓' * 140}")
-            print(f"✅ Analysis #{verbose_logger.analysis_count} Complete | {datetime.now().strftime('%H:%M:%S')}")
+            print(
+                f"✅ Analysis #{verbose_logger.analysis_count} Complete | {datetime.now().strftime('%H:%M:%S')}"
+            )
             print(f"{'▓' * 140}")
 
         # Register ultra-verbose handler
@@ -423,11 +476,12 @@ async def comprehensive_verbose_test():
             while True:
                 await asyncio.sleep(1)
         except KeyboardInterrupt:
-            print(f"\n🛑 Monitoring stopped by user")
+            print("\n🛑 Monitoring stopped by user")
 
     except Exception as e:
         print(f"💥 Test execution failed: {e}")
         import traceback
+
         traceback.print_exc()
 
     finally:
@@ -445,7 +499,9 @@ async def comprehensive_verbose_test():
 
         # Session summary
         session_time = (datetime.now() - verbose_logger.session_start).total_seconds()
-        verbose_logger.print_mega_header(f"🏁 SESSION COMPLETE - {verbose_logger.analysis_count} ANALYSES IN {session_time:.1f}s 🏁")
+        verbose_logger.print_mega_header(
+            f"🏁 SESSION COMPLETE - {verbose_logger.analysis_count} ANALYSES IN {session_time:.1f}s 🏁"
+        )
 
 
 if __name__ == "__main__":
@@ -456,4 +512,5 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"\n💥 Unexpected error: {e}")
         import traceback
+
         traceback.print_exc()

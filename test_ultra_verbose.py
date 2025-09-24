@@ -12,42 +12,46 @@ Shows every detail of the analysis process including:
 """
 
 import asyncio
-import json
-import sys
 import logging
-from pathlib import Path
+import sys
 from datetime import datetime
+from pathlib import Path
 
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
-from asam.integrations.browser import BrowserExtensionManager
 from asam.core.detection.analyzers.text import TextAnalyzer
 from asam.core.detection.types import TextContent
+from asam.integrations.browser import BrowserExtensionManager
 
 
 def setup_ultra_verbose_logging():
     """Configure logging to show ALL details"""
+
     # Create custom formatter for ultra-verbose output
     class UltraVerboseFormatter(logging.Formatter):
         def format(self, record):
-            timestamp = datetime.now().strftime("%H:%M:%S.%f")[:-3]  # Include milliseconds
+            timestamp = datetime.now().strftime("%H:%M:%S.%f")[
+                :-3
+            ]  # Include milliseconds
 
             # Color coding for different log levels
             colors = {
-                'DEBUG': '\033[36m',    # Cyan
-                'INFO': '\033[32m',     # Green
-                'WARNING': '\033[33m',  # Yellow
-                'ERROR': '\033[31m',    # Red
-                'CRITICAL': '\033[35m'  # Magenta
+                "DEBUG": "\033[36m",  # Cyan
+                "INFO": "\033[32m",  # Green
+                "WARNING": "\033[33m",  # Yellow
+                "ERROR": "\033[31m",  # Red
+                "CRITICAL": "\033[35m",  # Magenta
             }
-            reset_color = '\033[0m'
+            reset_color = "\033[0m"
 
-            color = colors.get(record.levelname, '')
+            color = colors.get(record.levelname, "")
             level = f"{color}[{record.levelname:<8}]{reset_color}"
 
             # Format module name for readability
-            module_name = record.name.split('.')[-1] if '.' in record.name else record.name
+            module_name = (
+                record.name.split(".")[-1] if "." in record.name else record.name
+            )
             module_display = f"{module_name:<15}"
 
             return f"{timestamp} | {level} | {module_display} | {record.getMessage()}"
@@ -67,8 +71,8 @@ def setup_ultra_verbose_logging():
     root_logger.addHandler(console_handler)
 
     # Set specific loggers to DEBUG
-    logging.getLogger('asam.core.detection.analyzers.text').setLevel(logging.DEBUG)
-    logging.getLogger('asam.integrations.browser').setLevel(logging.DEBUG)
+    logging.getLogger("asam.core.detection.analyzers.text").setLevel(logging.DEBUG)
+    logging.getLogger("asam.integrations.browser").setLevel(logging.DEBUG)
 
 
 def print_section_header(title, char="=", width=100):
@@ -94,7 +98,10 @@ def truncate_with_info(text, max_length=500):
     if original_length <= max_length:
         return text, original_length
 
-    truncated = text[:max_length] + f"\n... [TRUNCATED: {original_length - max_length} more characters]"
+    truncated = (
+        text[:max_length]
+        + f"\n... [TRUNCATED: {original_length - max_length} more characters]"
+    )
     return truncated, original_length
 
 
@@ -135,7 +142,7 @@ Drop your epic win stories in the comments below! 🚀
 
 #Fortnite #Gaming #BattleRoyale #EpicGames #VictoryRoyale""",
             "expected_category": "entertainment",
-            "content_type": "gaming"
+            "content_type": "gaming",
         },
         {
             "name": "Educational Content",
@@ -168,7 +175,7 @@ This tutorial is designed for intermediate to advanced Python developers looking
 
 Code examples and exercises are provided throughout to reinforce learning concepts.""",
             "expected_category": "productive",
-            "content_type": "education"
+            "content_type": "education",
         },
         {
             "name": "Social Media Content",
@@ -196,8 +203,8 @@ This is going to be ALL OVER TikTok tomorrow! 📺🍿
 
 #Drama #Twitter #Viral #Celebrity #Trending #SocialMedia""",
             "expected_category": "entertainment",
-            "content_type": "social_media"
-        }
+            "content_type": "social_media",
+        },
     ]
 
     # Initialize components
@@ -227,23 +234,25 @@ This is going to be ALL OVER TikTok tomorrow! 📺🍿
         for i, sample in enumerate(test_samples, 1):
             print_section_header(f"TEST CASE {i}: {sample['name'].upper()}", "=", 120)
 
-            print(f"📊 Test Sample Information:")
+            print("📊 Test Sample Information:")
             print(f"   • Name: {sample['name']}")
             print(f"   • Expected Category: {sample['expected_category']}")
             print(f"   • Content Type: {sample['content_type']}")
-            print(f"   • Expected vs Actual: Will compare results")
+            print("   • Expected vs Actual: Will compare results")
 
             print_subsection("📄 ORIGINAL CONTENT ANALYSIS")
 
             print(f"🏷️  Title: {sample['title']}")
             print(f"🔗 URL: {sample['url']}")
 
-            content_display, original_length = truncate_with_info(sample['content'], 800)
+            content_display, original_length = truncate_with_info(
+                sample["content"], 800
+            )
             print(f"📝 Content Length: {original_length} characters")
-            print(f"📖 Full Content:")
+            print("📖 Full Content:")
             print("─" * 80)
             # Add line numbers and indentation for better readability
-            lines = content_display.split('\n')
+            lines = content_display.split("\n")
             for line_num, line in enumerate(lines, 1):
                 print(f"{line_num:3d} │ {line}")
             print("─" * 80)
@@ -258,15 +267,15 @@ This is going to be ALL OVER TikTok tomorrow! 📺🍿
                 source="ultra_verbose_test",
                 timestamp=datetime.now(),
                 metadata={
-                    "url": sample['url'],
-                    "title": sample['title'],
-                    "content_type": sample['content_type'],
+                    "url": sample["url"],
+                    "title": sample["title"],
+                    "content_type": sample["content_type"],
                     "test_case": i,
-                    "expected_category": sample['expected_category']
-                }
+                    "expected_category": sample["expected_category"],
+                },
             )
 
-            print(f"📦 TextContent Object Created:")
+            print("📦 TextContent Object Created:")
             print(f"   • Total content length: {len(combined_text)} chars")
             print(f"   • Source: {text_content.source}")
             print(f"   • Timestamp: {text_content.timestamp}")
@@ -274,79 +283,101 @@ This is going to be ALL OVER TikTok tomorrow! 📺🍿
 
             # Perform analysis with timing
             analysis_start = datetime.now()
-            print(f"\n⏱️  Starting LLM analysis at {analysis_start.strftime('%H:%M:%S.%f')[:-3]}")
+            print(
+                f"\n⏱️  Starting LLM analysis at {analysis_start.strftime('%H:%M:%S.%f')[:-3]}"
+            )
 
             try:
                 print("\n🔄 Beginning detailed analysis pipeline...")
                 detection_result = await text_analyzer.analyze(text_content)
 
                 analysis_end = datetime.now()
-                total_analysis_time = (analysis_end - analysis_start).total_seconds() * 1000
+                total_analysis_time = (
+                    analysis_end - analysis_start
+                ).total_seconds() * 1000
 
                 print_subsection("📋 ANALYSIS RESULTS")
 
                 if detection_result:
-                    print(f"✅ Analysis completed successfully!")
+                    print("✅ Analysis completed successfully!")
                     print(f"⏱️  Total analysis time: {total_analysis_time:.1f}ms")
 
                     # Main results
-                    print(f"\n🎯 CLASSIFICATION RESULTS:")
+                    print("\n🎯 CLASSIFICATION RESULTS:")
                     print(f"   • Category: {detection_result.category.value.upper()}")
-                    print(f"   • Confidence: {detection_result.confidence:.4f} ({detection_result.confidence*100:.1f}%)")
+                    print(
+                        f"   • Confidence: {detection_result.confidence:.4f} ({detection_result.confidence*100:.1f}%)"
+                    )
                     print(f"   • Analyzer Type: {detection_result.analyzer_type.value}")
                     print(f"   • Timestamp: {detection_result.timestamp}")
 
                     # Compare with expected
-                    expected_match = detection_result.category.value == sample['expected_category']
+                    expected_match = (
+                        detection_result.category.value == sample["expected_category"]
+                    )
                     match_indicator = "✅ CORRECT" if expected_match else "❌ INCORRECT"
-                    print(f"   • Expected vs Actual: {sample['expected_category']} vs {detection_result.category.value} ({match_indicator})")
+                    print(
+                        f"   • Expected vs Actual: {sample['expected_category']} vs {detection_result.category.value} ({match_indicator})"
+                    )
 
                     # Detailed evidence analysis
                     if detection_result.evidence:
                         evidence = detection_result.evidence
-                        print(f"\n🔍 DETAILED EVIDENCE ANALYSIS:")
+                        print("\n🔍 DETAILED EVIDENCE ANALYSIS:")
 
                         # LLM-specific evidence
-                        llm_category = evidence.get('llm_category', 'unknown')
-                        subcategory = evidence.get('subcategory', 'unclear')
+                        llm_category = evidence.get("llm_category", "unknown")
+                        subcategory = evidence.get("subcategory", "unclear")
                         print(f"   • LLM Raw Category: '{llm_category}'")
                         print(f"   • Subcategory: '{subcategory}'")
-                        print(f"   • Model Used: {evidence.get('model_used', 'unknown')}")
+                        print(
+                            f"   • Model Used: {evidence.get('model_used', 'unknown')}"
+                        )
 
                         # Keywords analysis
-                        keywords = evidence.get('keywords', [])
+                        keywords = evidence.get("keywords", [])
                         print(f"   • Keywords Found: {len(keywords)} total")
                         if keywords:
                             print(f"     Keywords: {', '.join(keywords)}")
                         else:
-                            print(f"     Keywords: None identified")
+                            print("     Keywords: None identified")
 
                         # Reasoning analysis
-                        reasoning = evidence.get('reasoning', 'No reasoning provided')
-                        reasoning_display, reasoning_length = truncate_with_info(reasoning, 400)
+                        reasoning = evidence.get("reasoning", "No reasoning provided")
+                        reasoning_display, reasoning_length = truncate_with_info(
+                            reasoning, 400
+                        )
                         print(f"   • Reasoning Length: {reasoning_length} characters")
-                        print(f"   • LLM Reasoning:")
-                        reasoning_lines = reasoning_display.split('\n')
+                        print("   • LLM Reasoning:")
+                        reasoning_lines = reasoning_display.split("\n")
                         for line in reasoning_lines:
                             print(f"     │ {line}")
 
                         # Technical details
-                        print(f"\n🔧 TECHNICAL DETAILS:")
-                        print(f"   • Original text length: {evidence.get('text_length', 'unknown')}")
-                        print(f"   • Text source: {evidence.get('text_source', 'unknown')}")
+                        print("\n🔧 TECHNICAL DETAILS:")
+                        print(
+                            f"   • Original text length: {evidence.get('text_length', 'unknown')}"
+                        )
+                        print(
+                            f"   • Text source: {evidence.get('text_source', 'unknown')}"
+                        )
 
                         # Print all evidence keys for debugging
                         print(f"   • All evidence keys: {list(evidence.keys())}")
 
                     # Metadata analysis
                     if detection_result.metadata:
-                        print(f"\n📊 RESULT METADATA:")
+                        print("\n📊 RESULT METADATA:")
                         for key, value in detection_result.metadata.items():
                             print(f"   • {key}: {value}")
 
                     # Decision logic analysis
-                    print(f"\n⚖️  DECISION ANALYSIS:")
-                    confidence_level = "HIGH" if detection_result.confidence >= 0.8 else "MEDIUM" if detection_result.confidence >= 0.6 else "LOW"
+                    print("\n⚖️  DECISION ANALYSIS:")
+                    confidence_level = (
+                        "HIGH"
+                        if detection_result.confidence >= 0.8
+                        else "MEDIUM" if detection_result.confidence >= 0.6 else "LOW"
+                    )
                     print(f"   • Confidence Level: {confidence_level}")
 
                     if detection_result.category.value == "entertainment":
@@ -364,10 +395,12 @@ This is going to be ALL OVER TikTok tomorrow! 📺🍿
                     print(f"   • Recommended Action: {action}")
 
                 else:
-                    analysis_time = (datetime.now() - analysis_start).total_seconds() * 1000
+                    analysis_time = (
+                        datetime.now() - analysis_start
+                    ).total_seconds() * 1000
                     print(f"❌ Analysis FAILED after {analysis_time:.1f}ms")
-                    print(f"   • No detection result returned")
-                    print(f"   • Check logs above for error details")
+                    print("   • No detection result returned")
+                    print("   • Check logs above for error details")
 
             except Exception as e:
                 analysis_time = (datetime.now() - analysis_start).total_seconds() * 1000
@@ -377,24 +410,26 @@ This is going to be ALL OVER TikTok tomorrow! 📺🍿
 
                 # Full traceback for debugging
                 import traceback
-                print(f"\n🐛 FULL ERROR TRACEBACK:")
+
+                print("\n🐛 FULL ERROR TRACEBACK:")
                 print("─" * 80)
                 traceback.print_exc()
                 print("─" * 80)
 
             # Separator between test cases
             if i < len(test_samples):
-                print(f"\n⏳ Waiting 2 seconds before next test case...")
+                print("\n⏳ Waiting 2 seconds before next test case...")
                 await asyncio.sleep(2)
 
         print_section_header("🎉 ALL ULTRA-VERBOSE TESTS COMPLETED 🎉", "=", 120)
         print(f"End time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
     except Exception as e:
-        print(f"\n💥 CRITICAL ERROR in test execution:")
+        print("\n💥 CRITICAL ERROR in test execution:")
         print(f"   Error: {str(e)}")
         print(f"   Type: {type(e).__name__}")
         import traceback
+
         print("Full traceback:")
         traceback.print_exc()
 
@@ -423,6 +458,7 @@ def main():
     except Exception as e:
         print(f"\n💥 Unexpected error: {e}")
         import traceback
+
         traceback.print_exc()
 
 

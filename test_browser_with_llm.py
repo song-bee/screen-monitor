@@ -6,17 +6,16 @@ Tests browser extension with full LLM content analysis and verbose output.
 """
 
 import asyncio
-import json
 import sys
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
 
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
-from asam.integrations.browser import BrowserExtensionManager
 from asam.core.detection.analyzers.text import TextAnalyzer
 from asam.core.detection.types import TextContent
+from asam.integrations.browser import BrowserExtensionManager
 
 
 def truncate_text(text, max_length=300):
@@ -37,11 +36,11 @@ def format_llm_response(response_data):
         return "No response"
 
     # Extract key information
-    category = response_data.get('category', 'unknown')
-    confidence = response_data.get('confidence', 0.0)
-    reasoning = response_data.get('reasoning', 'No reasoning provided')
-    keywords = response_data.get('keywords', [])
-    subcategory = response_data.get('subcategory', 'unclear')
+    category = response_data.get("category", "unknown")
+    confidence = response_data.get("confidence", 0.0)
+    reasoning = response_data.get("reasoning", "No reasoning provided")
+    keywords = response_data.get("keywords", [])
+    subcategory = response_data.get("subcategory", "unclear")
 
     formatted = f"""
     🎯 Category: {category.upper()}
@@ -101,64 +100,84 @@ async def test_browser_with_llm_analysis():
                 print(f"📄 Title: {browser_content.title}")
                 print(f"🔗 URL: {browser_content.url}")
                 print(f"🏷️  Tab ID: {browser_content.tab_id}")
-                print(f"📊 Content Type: {browser_content.metadata.get('contentType', 'unknown')}")
+                print(
+                    f"📊 Content Type: {browser_content.metadata.get('contentType', 'unknown')}"
+                )
 
                 # Display content preview
-                print(f"\n📖 WEBPAGE CONTENT ({len(browser_content.text_content)} chars):")
+                print(
+                    f"\n📖 WEBPAGE CONTENT ({len(browser_content.text_content)} chars):"
+                )
                 print("-" * 50)
                 content_preview = truncate_text(browser_content.text_content, 400)
                 # Add indentation for better readability
-                formatted_content = "\n".join([f"   {line}" for line in content_preview.split('\n')])
+                formatted_content = "\n".join(
+                    [f"   {line}" for line in content_preview.split("\n")]
+                )
                 print(formatted_content)
                 print("-" * 50)
 
                 # Display metadata
                 if browser_content.metadata:
-                    print(f"\n📊 METADATA:")
+                    print("\n📊 METADATA:")
                     for key, value in browser_content.metadata.items():
-                        if key not in ['contentType']:  # Already shown above
-                            display_value = truncate_text(str(value), 80) if isinstance(value, str) else value
+                        if key not in ["contentType"]:  # Already shown above
+                            display_value = (
+                                truncate_text(str(value), 80)
+                                if isinstance(value, str)
+                                else value
+                            )
                             print(f"   {key}: {display_value}")
 
                 # Convert to TextContent for LLM analysis
-                print(f"\n🧠 LLM ANALYSIS:")
+                print("\n🧠 LLM ANALYSIS:")
                 print("-" * 30)
 
                 try:
-                    text_content = browser_manager.server.convert_to_text_content(browser_content)
+                    text_content = browser_manager.server.convert_to_text_content(
+                        browser_content
+                    )
 
                     # Perform LLM analysis
                     detection_result = await text_analyzer.analyze(text_content)
 
                     if detection_result:
-                        print(f"✅ Analysis completed!")
+                        print("✅ Analysis completed!")
                         print(f"🎯 Category: {detection_result.category.value}")
                         print(f"🔢 Confidence: {detection_result.confidence:.3f}")
 
                         # Display evidence details
                         if detection_result.evidence:
                             evidence = detection_result.evidence
-                            print(f"\n📋 EVIDENCE:")
+                            print("\n📋 EVIDENCE:")
 
                             # LLM specific evidence
-                            if 'reasoning' in evidence:
-                                reasoning = truncate_text(evidence['reasoning'], 200)
+                            if "reasoning" in evidence:
+                                reasoning = truncate_text(evidence["reasoning"], 200)
                                 print(f"   💭 Reasoning: {reasoning}")
 
-                            if 'keywords' in evidence and evidence['keywords']:
-                                keywords = evidence['keywords'][:10]  # Limit to first 10 keywords
+                            if "keywords" in evidence and evidence["keywords"]:
+                                keywords = evidence["keywords"][
+                                    :10
+                                ]  # Limit to first 10 keywords
                                 print(f"   🔑 Keywords: {', '.join(keywords)}")
 
-                            if 'subcategory' in evidence:
+                            if "subcategory" in evidence:
                                 print(f"   🏷️  Subcategory: {evidence['subcategory']}")
 
-                            if 'llm_category' in evidence:
+                            if "llm_category" in evidence:
                                 print(f"   🤖 LLM Category: {evidence['llm_category']}")
 
                             # Technical details
-                            print(f"   📏 Text Length: {evidence.get('text_length', 'unknown')}")
-                            print(f"   📡 Source: {evidence.get('text_source', 'unknown')}")
-                            print(f"   🧠 Model: {evidence.get('model_used', 'unknown')}")
+                            print(
+                                f"   📏 Text Length: {evidence.get('text_length', 'unknown')}"
+                            )
+                            print(
+                                f"   📡 Source: {evidence.get('text_source', 'unknown')}"
+                            )
+                            print(
+                                f"   🧠 Model: {evidence.get('model_used', 'unknown')}"
+                            )
 
                         # Determine action based on confidence
                         if detection_result.confidence >= 0.8:
@@ -180,6 +199,7 @@ async def test_browser_with_llm_analysis():
                     print(f"❌ Error during LLM analysis: {e}")
                     # Show traceback for debugging
                     import traceback
+
                     traceback.print_exc()
 
                 print("\n" + "=" * 70)
@@ -187,7 +207,9 @@ async def test_browser_with_llm_analysis():
                 print("=" * 70)
 
             # Register the enhanced callback
-            browser_manager.server.register_content_callback(handle_browser_content_with_llm)
+            browser_manager.server.register_content_callback(
+                handle_browser_content_with_llm
+            )
 
             # Keep running until interrupted
             try:
@@ -203,6 +225,7 @@ async def test_browser_with_llm_analysis():
     except Exception as e:
         print(f"❌ Test failed with error: {e}")
         import traceback
+
         traceback.print_exc()
         return False
 
@@ -235,18 +258,18 @@ async def test_single_content_analysis():
         {
             "title": "How to Build a React App",
             "url": "https://example.com/react-tutorial",
-            "content": "Learn how to build modern React applications with hooks, state management, and component design patterns. This comprehensive tutorial covers everything from setup to deployment."
+            "content": "Learn how to build modern React applications with hooks, state management, and component design patterns. This comprehensive tutorial covers everything from setup to deployment.",
         },
         {
             "title": "Top 10 Funny Cat Videos",
             "url": "https://youtube.com/watch?v=cats",
-            "content": "Check out these hilarious cat videos that will make you laugh! Funny cats playing, jumping, and being adorable. Don't miss these viral cat moments!"
+            "content": "Check out these hilarious cat videos that will make you laugh! Funny cats playing, jumping, and being adorable. Don't miss these viral cat moments!",
         },
         {
             "title": "Stock Market Analysis Today",
             "url": "https://finance.example.com/analysis",
-            "content": "Today's market analysis shows significant movement in tech stocks. Apple and Microsoft gained while Tesla declined. Economic indicators suggest continued volatility ahead."
-        }
+            "content": "Today's market analysis shows significant movement in tech stocks. Apple and Microsoft gained while Tesla declined. Economic indicators suggest continued volatility ahead.",
+        },
     ]
 
     for i, test_content in enumerate(test_contents, 1):
@@ -260,16 +283,20 @@ async def test_single_content_analysis():
             content=f"Page Title: {test_content['title']}\nURL: {test_content['url']}\nContent: {test_content['content']}",
             source="test_browser",
             timestamp=datetime.now(),
-            metadata={"url": test_content['url'], "title": test_content['title']}
+            metadata={"url": test_content["url"], "title": test_content["title"]},
         )
 
         # Analyze with LLM
         try:
             result = await text_analyzer.analyze(text_content)
             if result:
-                print(f"🎯 Result: {result.category.value} (confidence: {result.confidence:.3f})")
-                if result.evidence and 'reasoning' in result.evidence:
-                    print(f"💭 Reasoning: {truncate_text(result.evidence['reasoning'], 120)}")
+                print(
+                    f"🎯 Result: {result.category.value} (confidence: {result.confidence:.3f})"
+                )
+                if result.evidence and "reasoning" in result.evidence:
+                    print(
+                        f"💭 Reasoning: {truncate_text(result.evidence['reasoning'], 120)}"
+                    )
             else:
                 print("❌ No analysis result")
         except Exception as e:
