@@ -50,6 +50,7 @@ async def main():
     logger = logging.getLogger(__name__)
     logger.info("Starting Advanced Screen Activity Monitor (ASAM)")
 
+    service = None
     try:
         # Initialize configuration
         config_manager = ConfigManager(config_path=args.config)
@@ -75,12 +76,27 @@ async def main():
 
         await service.start()
 
+        # Keep running until interrupted
+        try:
+            while service.is_running:
+                await asyncio.sleep(1)
+        except asyncio.CancelledError:
+            pass
+
     except KeyboardInterrupt:
         logger.info("Received interrupt signal, shutting down...")
         return 0
     except Exception as e:
         logger.error(f"Fatal error: {e}", exc_info=True)
         return 1
+    finally:
+        # Ensure proper cleanup
+        if service:
+            try:
+                logger.info("Cleaning up service...")
+                await service.cleanup()
+            except Exception as cleanup_error:
+                logger.error(f"Error during cleanup: {cleanup_error}")
 
 
 def cli_main():

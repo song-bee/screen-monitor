@@ -4,6 +4,7 @@ Text Content Analyzer
 Uses local LLM (Ollama) to analyze text content for entertainment detection.
 """
 
+import asyncio
 import json
 from datetime import datetime
 from typing import Any, Optional
@@ -50,6 +51,8 @@ class TextAnalyzer(AnalyzerBase):
         """Cleanup HTTP session"""
         if self.session:
             await self.session.close()
+            # Give time for connectors to close properly
+            await asyncio.sleep(0.1)
             self.session = None
         await super().cleanup()
 
