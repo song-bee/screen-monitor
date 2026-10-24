@@ -43,6 +43,7 @@ CAPTURE_MODE = os.getenv("CAPTURE_MODE", "full").lower()  # full or crop
 CROP_SIZE = min(1.0, max(0.1, float(os.getenv("CROP_SIZE", "0.5"))))
 CROP_ZONE = min(1.0, max(CROP_SIZE, float(os.getenv("CROP_ZONE", "0.8"))))
 DRY_RUN = os.getenv("DRY_RUN", "false").lower() == "true"
+NOTIFY_SECONDS = int(os.getenv("NOTIFY_SECONDS", "15"))  # 0 = normal banner
 BLOCKED_CATEGORIES = os.getenv(
     "BLOCKED_CATEGORIES",
     "video game; novel (web novel, e-book, light novel, manga, fan fiction)",
@@ -178,9 +179,20 @@ def notify(title, message):
     def q(text):  # make the text safe inside AppleScript quotes
         return text.replace("\\", "\\\\").replace('"', '\\"')
 
-    script = (f'display notification "{q(message)}" '
-              f'with title "{q(title)}" sound name "Basso"')
-    subprocess.run(["osascript", "-e", script])
+    if NOTIFY_SECONDS <= 0:
+        # Normal banner. macOS closes it after about 5 seconds.
+        script = (f'display notification "{q(message)}" '
+                  f'with title "{q(title)}" sound name "Basso"')
+        subprocess.run(["osascript", "-e", script])
+        return
+
+    # A dialog box that stays up for NOTIFY_SECONDS, then closes itself.
+    # Popen so the watcher keeps running while the box is open.
+    script = (f'display dialog "{q(message)}" with title "{q(title)}" '
+              f'buttons {{"OK"}} default button "OK" with icon caution '
+              f'giving up after {NOTIFY_SECONDS}')
+    subprocess.Popen(["osascript", "-e", "beep", "-e", script],
+                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 
 def lock_screen():
