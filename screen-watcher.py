@@ -15,6 +15,7 @@ Settings live in .env (see .env.example).
 
 import base64
 import json
+import logging
 import os
 import subprocess
 import sys
@@ -26,6 +27,10 @@ from dotenv import load_dotenv
 from openai import OpenAI
 
 load_dotenv()
+
+# Keep the OpenAI and HTTP libraries quiet. Only our own log() prints.
+for name in ("openai", "httpx", "httpcore"):
+    logging.getLogger(name).setLevel(logging.WARNING)
 
 API_KEY = os.getenv("OPENAI_API_KEY", "")
 MODEL = os.getenv("OPENAI_MODEL", "gpt-4.1-mini")
@@ -65,6 +70,7 @@ def analyze(image_path):
 
     resp = client.chat.completions.create(
         model=MODEL,
+        store=False,  # ask OpenAI not to keep this request
         response_format={"type": "json_object"},
         messages=[{
             "role": "user",
