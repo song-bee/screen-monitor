@@ -146,7 +146,7 @@ def main():
     if not API_KEY:
         sys.exit("OPENAI_API_KEY is missing. Put it in .env")
     global client, SCREEN
-    client = OpenAI(api_key=API_KEY)
+    client = OpenAI(api_key=API_KEY, timeout=60, max_retries=1)
     SCREEN = screen_size()
 
     log(f"Watching every {INTERVAL}s, model={MODEL}, "
@@ -155,17 +155,24 @@ def main():
         f"crop_size={CROP_SIZE}, crop_zone={CROP_ZONE}, detail={IMAGE_DETAIL}")
     strikes = 0
 
+    first = True
     while True:
-        time.sleep(INTERVAL)
+        if not first:
+            time.sleep(INTERVAL)
+        first = False
+
+        start = time.time()
         try:
             path = capture_screen()
             bad, reason = analyze(path)
             os.remove(path)
         except Exception as e:
-            log(f"Error: {e}")
+            log(f"Error after {time.time() - start:.1f}s: {e}")
             continue
+        took = time.time() - start
 
         if not bad:
+            log(f"OK ({took:.1f}s): {reason}")
             if strikes:
                 log("Screen is fine again, warnings reset")
             strikes = 0
@@ -173,14 +180,14 @@ def main():
 
         strikes += 1
         if strikes <= MAX_WARNINGS:
-            log(f"Warning {strikes}/{MAX_WARNINGS}: {reason}")
+            log(f"Warning {strikes}/{MAX_WARNINGS} ({took:.1f}s): {reason}")
             left = MAX_WARNINGS - strikes
             tail = (f"{left} more and the screen locks" if left
                     else "next time the screen locks")
             notify(f"Screen warning {strikes}/{MAX_WARNINGS}",
                    f"{reason}. {tail}.")
         else:
-            log(f"Locking: {reason}")
+            log(f"Locking ({took:.1f}s): {reason}")
             notify("Locking screen", reason)
             lock_screen()
             strikes = 0
