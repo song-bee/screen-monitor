@@ -2,8 +2,8 @@
 screen-watcher.py  (macOS only)
 
 Every CAPTURE_INTERVAL_SECONDS it takes a screenshot, asks OpenAI if the
-screen shows a video game or a novel, warns up to MAX_WARNINGS times,
-then locks the screen.
+screen shows one of the BLOCKED_CATEGORIES (games, novels, video, ...),
+warns up to MAX_WARNINGS times, then locks the screen.
 
 Setup:
     pip install openai python-dotenv
@@ -43,19 +43,38 @@ CAPTURE_MODE = os.getenv("CAPTURE_MODE", "full").lower()  # full or crop
 CROP_SIZE = min(1.0, max(0.1, float(os.getenv("CROP_SIZE", "0.5"))))
 CROP_ZONE = min(1.0, max(CROP_SIZE, float(os.getenv("CROP_ZONE", "0.8"))))
 DRY_RUN = os.getenv("DRY_RUN", "false").lower() == "true"
+BLOCKED_CATEGORIES = os.getenv(
+    "BLOCKED_CATEGORIES",
+    "video game; novel (web novel, e-book, light novel, manga, fan fiction)",
+)
+
+
+def parse_categories(text):
+    """Split 'name (examples); name (examples)' into a list of
+    (name, full text). The name is the part before any '('."""
+    cats = []
+    for item in text.split(";"):
+        item = item.strip()
+        name = item.split("(")[0].strip().lower()
+        if name and name != "none" and name not in [c[0] for c in cats]:
+            cats.append((name, item))
+    return cats
+
+
+CATEGORIES = parse_categories(BLOCKED_CATEGORIES)
+CATEGORY_NAMES = [name for name, _ in CATEGORIES]
 
 PROMPT = (
     "You are checking a screenshot of a person's computer screen. "
     "First, in 'reason', say in a few words what the main thing on screen is. "
-    "Then set 'is_game_or_novel' to true ONLY if that main thing is a VIDEO "
-    "GAME being played or a NOVEL / fiction story being read (web novel, "
-    "e-book, light novel, manga, fan fiction). Set it to false for anything "
-    "else, such as a terminal, code editor, documents, email, chat, or work "
-    "websites. Ignore small ads or thumbnails."
+    "Then set 'category' to the blocked category below that matches that "
+    "main thing, or 'none' if it matches none of them. "
+    "Blocked categories: " + "; ".join(item for _, item in CATEGORIES) + ". "
+    "Anything not in that list is 'none'. Ignore small ads or thumbnails."
 )
 
 # Strict schema: the model must return exactly these two fields, the
-# reason first, and is_game_or_novel must be a real true/false value.
+# reason first, and category must be one of our names or "none".
 RESPONSE_FORMAT = {
     "type": "json_schema",
     "json_schema": {
@@ -65,9 +84,10 @@ RESPONSE_FORMAT = {
             "type": "object",
             "properties": {
                 "reason": {"type": "string"},
-                "is_game_or_novel": {"type": "boolean"},
+                "category": {"type": "string",
+                             "enum": CATEGORY_NAMES + ["none"]},
             },
-            "required": ["reason", "is_game_or_novel"],
+            "required": ["reason", "category"],
             "additionalProperties": False,
         },
     },
@@ -140,15 +160,18 @@ def analyze(image_path):
 
 
 def parse_answer(raw):
-    """Read the model's JSON. Only a real JSON true counts as bad."""
+    """Read the model's JSON. Bad only if category is one of ours."""
     try:
         data = json.loads(raw)
     except json.JSONDecodeError:
         raise ValueError(f"answer is not JSON: {raw!r}")
     if not isinstance(data, dict):
         raise ValueError(f"answer is not a JSON object: {raw!r}")
-    bad = data.get("is_game_or_novel") is True
-    return bad, str(data.get("reason", "")).strip()
+    category = data.get("category")
+    reason = str(data.get("reason", "")).strip()
+    if isinstance(category, str) and category.strip().lower() in CATEGORY_NAMES:
+        return True, f"{category.strip().lower()}: {reason}"
+    return False, reason
 
 
 def notify(title, message):
@@ -178,6 +201,8 @@ def main():
         sys.exit("This script only works on macOS.")
     if not API_KEY:
         sys.exit("OPENAI_API_KEY is missing. Put it in .env")
+    if not CATEGORIES:
+        sys.exit("BLOCKED_CATEGORIES is empty. Put at least one in .env")
     global client, SCREEN
     client = OpenAI(api_key=API_KEY, timeout=60, max_retries=1)
     SCREEN = screen_size()
@@ -186,6 +211,7 @@ def main():
         f"max warnings={MAX_WARNINGS}, dry_run={DRY_RUN}")
     log(f"Screen {SCREEN[0]}x{SCREEN[1]}, capture={CAPTURE_MODE}, "
         f"crop_size={CROP_SIZE}, crop_zone={CROP_ZONE}, detail={IMAGE_DETAIL}")
+    log(f"Blocked: {', '.join(CATEGORY_NAMES)}")
     strikes = 0
 
     first = True
