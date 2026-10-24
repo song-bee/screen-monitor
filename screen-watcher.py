@@ -41,6 +41,7 @@ IMAGE_WIDTH = int(os.getenv("IMAGE_WIDTH", "1280"))  # smaller = cheaper
 IMAGE_DETAIL = os.getenv("IMAGE_DETAIL", "low")  # low, high or auto
 CAPTURE_MODE = os.getenv("CAPTURE_MODE", "full").lower()  # full or crop
 CROP_SIZE = min(1.0, max(0.1, float(os.getenv("CROP_SIZE", "0.5"))))
+CROP_ZONE = min(1.0, max(CROP_SIZE, float(os.getenv("CROP_ZONE", "0.8"))))
 DRY_RUN = os.getenv("DRY_RUN", "false").lower() == "true"
 
 PROMPT = (
@@ -71,12 +72,14 @@ def screen_size():
 
 
 def random_crop_box(width, height):
-    """Pick a crop box of CROP_SIZE of the screen. The middle is most likely."""
+    """Pick a crop box of CROP_SIZE of the screen, at a random spot that keeps
+    it inside the middle CROP_ZONE of the screen. Every spot is equally likely."""
     cw, ch = int(width * CROP_SIZE), int(height * CROP_SIZE)
-    # triangular() picks a random spot, with the screen center as the peak
-    cx = random.triangular(cw / 2, width - cw / 2, width / 2)
-    cy = random.triangular(ch / 2, height - ch / 2, height / 2)
-    return int(cx - cw / 2), int(cy - ch / 2), cw, ch
+    zw, zh = int(width * CROP_ZONE), int(height * CROP_ZONE)
+    zx, zy = (width - zw) // 2, (height - zh) // 2  # top-left of the zone
+    x = random.randint(zx, zx + max(0, zw - cw))
+    y = random.randint(zy, zy + max(0, zh - ch))
+    return x, y, cw, ch
 
 
 def capture_screen():
@@ -149,7 +152,7 @@ def main():
     log(f"Watching every {INTERVAL}s, model={MODEL}, "
         f"max warnings={MAX_WARNINGS}, dry_run={DRY_RUN}")
     log(f"Screen {SCREEN[0]}x{SCREEN[1]}, capture={CAPTURE_MODE}, "
-        f"crop_size={CROP_SIZE}, detail={IMAGE_DETAIL}")
+        f"crop_size={CROP_SIZE}, crop_zone={CROP_ZONE}, detail={IMAGE_DETAIL}")
     strikes = 0
 
     while True:
