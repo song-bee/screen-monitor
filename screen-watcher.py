@@ -46,11 +46,32 @@ DRY_RUN = os.getenv("DRY_RUN", "false").lower() == "true"
 
 PROMPT = (
     "You are checking a screenshot of a person's computer screen. "
-    "Answer whether the main thing on screen is a VIDEO GAME being played "
-    "or a NOVEL / fiction story being read (web novel, e-book, light novel, "
-    "manga, fan fiction). Ignore small ads or thumbnails. "
-    'Reply with JSON only: {"bad": true or false, "reason": "short reason"}'
+    "First, in 'reason', say in a few words what the main thing on screen is. "
+    "Then set 'is_game_or_novel' to true ONLY if that main thing is a VIDEO "
+    "GAME being played or a NOVEL / fiction story being read (web novel, "
+    "e-book, light novel, manga, fan fiction). Set it to false for anything "
+    "else, such as a terminal, code editor, documents, email, chat, or work "
+    "websites. Ignore small ads or thumbnails."
 )
+
+# Strict schema: the model must return exactly these two fields, the
+# reason first, and is_game_or_novel must be a real true/false value.
+RESPONSE_FORMAT = {
+    "type": "json_schema",
+    "json_schema": {
+        "name": "screen_check",
+        "strict": True,
+        "schema": {
+            "type": "object",
+            "properties": {
+                "reason": {"type": "string"},
+                "is_game_or_novel": {"type": "boolean"},
+            },
+            "required": ["reason", "is_game_or_novel"],
+            "additionalProperties": False,
+        },
+    },
+}
 
 client = None  # created in main() after the key check
 SCREEN = (0, 0)  # screen width and height, set in main()
@@ -96,14 +117,14 @@ def capture_screen():
 
 
 def analyze(image_path):
-    """Ask OpenAI. Returns (bad, reason)."""
+    """Ask OpenAI. Returns (bad, reason, raw answer text)."""
     with open(image_path, "rb") as f:
         b64 = base64.b64encode(f.read()).decode()
 
     resp = client.chat.completions.create(
         model=MODEL,
         store=False,  # ask OpenAI not to keep this request
-        response_format={"type": "json_object"},
+        response_format=RESPONSE_FORMAT,
         messages=[{
             "role": "user",
             "content": [
@@ -114,8 +135,20 @@ def analyze(image_path):
             ],
         }],
     )
-    data = json.loads(resp.choices[0].message.content)
-    return bool(data.get("bad")), str(data.get("reason", ""))
+    raw = resp.choices[0].message.content or ""
+    return parse_answer(raw) + (raw,)
+
+
+def parse_answer(raw):
+    """Read the model's JSON. Only a real JSON true counts as bad."""
+    try:
+        data = json.loads(raw)
+    except json.JSONDecodeError:
+        raise ValueError(f"answer is not JSON: {raw!r}")
+    if not isinstance(data, dict):
+        raise ValueError(f"answer is not a JSON object: {raw!r}")
+    bad = data.get("is_game_or_novel") is True
+    return bad, str(data.get("reason", "")).strip()
 
 
 def notify(title, message):
@@ -164,15 +197,16 @@ def main():
         start = time.time()
         try:
             path = capture_screen()
-            bad, reason = analyze(path)
+            bad, reason, raw = analyze(path)
             os.remove(path)
         except Exception as e:
             log(f"Error after {time.time() - start:.1f}s: {e}")
             continue
         took = time.time() - start
+        raw = raw.replace("\n", " ")  # keep each log entry on one line
 
         if not bad:
-            log(f"OK ({took:.1f}s): {reason}")
+            log(f"OK ({took:.1f}s) raw={raw}")
             if strikes:
                 log("Screen is fine again, warnings reset")
             strikes = 0
@@ -180,14 +214,14 @@ def main():
 
         strikes += 1
         if strikes <= MAX_WARNINGS:
-            log(f"Warning {strikes}/{MAX_WARNINGS} ({took:.1f}s): {reason}")
+            log(f"Warning {strikes}/{MAX_WARNINGS} ({took:.1f}s) raw={raw}")
             left = MAX_WARNINGS - strikes
             tail = (f"{left} more and the screen locks" if left
                     else "next time the screen locks")
             notify(f"Screen warning {strikes}/{MAX_WARNINGS}",
                    f"{reason}. {tail}.")
         else:
-            log(f"Locking ({took:.1f}s): {reason}")
+            log(f"Locking ({took:.1f}s) raw={raw}")
             notify("Locking screen", reason)
             lock_screen()
             strikes = 0
