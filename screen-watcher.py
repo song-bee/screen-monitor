@@ -17,6 +17,7 @@ import base64
 import json
 import logging
 import os
+import random
 import subprocess
 import sys
 import tempfile
@@ -37,6 +38,9 @@ MODEL = os.getenv("OPENAI_MODEL", "gpt-4.1-mini")
 INTERVAL = int(os.getenv("CAPTURE_INTERVAL_SECONDS", "30"))
 MAX_WARNINGS = int(os.getenv("MAX_WARNINGS", "3"))
 IMAGE_WIDTH = int(os.getenv("IMAGE_WIDTH", "1280"))  # smaller = cheaper
+IMAGE_DETAIL = os.getenv("IMAGE_DETAIL", "low")  # low, high or auto
+CAPTURE_MODE = os.getenv("CAPTURE_MODE", "full").lower()  # full or crop
+CROP_SIZE = min(1.0, max(0.1, float(os.getenv("CROP_SIZE", "0.5"))))
 DRY_RUN = os.getenv("DRY_RUN", "false").lower() == "true"
 
 PROMPT = (
@@ -48,16 +52,41 @@ PROMPT = (
 )
 
 client = None  # created in main() after the key check
+SCREEN = (0, 0)  # screen width and height, set in main()
 
 
 def log(msg):
     print(f"[{datetime.now():%H:%M:%S}] {msg}", flush=True)
 
 
+def screen_size():
+    """Screen width and height in points, from Finder."""
+    out = subprocess.run(
+        ["osascript", "-e",
+         'tell application "Finder" to get bounds of window of desktop'],
+        capture_output=True, text=True, check=True,
+    ).stdout
+    left, top, right, bottom = [int(float(v)) for v in out.split(",")]
+    return right - left, bottom - top
+
+
+def random_crop_box(width, height):
+    """Pick a crop box of CROP_SIZE of the screen. The middle is most likely."""
+    cw, ch = int(width * CROP_SIZE), int(height * CROP_SIZE)
+    # triangular() picks a random spot, with the screen center as the peak
+    cx = random.triangular(cw / 2, width - cw / 2, width / 2)
+    cy = random.triangular(ch / 2, height - ch / 2, height / 2)
+    return int(cx - cw / 2), int(cy - ch / 2), cw, ch
+
+
 def capture_screen():
-    """Take a screenshot with the built-in macOS tool and shrink it."""
+    """Take a screenshot (full or a random part) and shrink it."""
     path = os.path.join(tempfile.gettempdir(), "screen-watcher.jpg")
-    subprocess.run(["screencapture", "-x", "-t", "jpg", path], check=True)
+    cmd = ["screencapture", "-x", "-t", "jpg"]
+    if CAPTURE_MODE == "crop" and CROP_SIZE < 1.0:
+        x, y, w, h = random_crop_box(*SCREEN)
+        cmd += ["-R", f"{x},{y},{w},{h}"]
+    subprocess.run(cmd + [path], check=True)
     subprocess.run(["sips", "-Z", str(IMAGE_WIDTH), path],
                    check=True, capture_output=True)
     return path
@@ -78,7 +107,7 @@ def analyze(image_path):
                 {"type": "text", "text": PROMPT},
                 {"type": "image_url",
                  "image_url": {"url": f"data:image/jpeg;base64,{b64}",
-                               "detail": "low"}},
+                               "detail": IMAGE_DETAIL}},
             ],
         }],
     )
@@ -113,11 +142,14 @@ def main():
         sys.exit("This script only works on macOS.")
     if not API_KEY:
         sys.exit("OPENAI_API_KEY is missing. Put it in .env")
-    global client
+    global client, SCREEN
     client = OpenAI(api_key=API_KEY)
+    SCREEN = screen_size()
 
     log(f"Watching every {INTERVAL}s, model={MODEL}, "
         f"max warnings={MAX_WARNINGS}, dry_run={DRY_RUN}")
+    log(f"Screen {SCREEN[0]}x{SCREEN[1]}, capture={CAPTURE_MODE}, "
+        f"crop_size={CROP_SIZE}, detail={IMAGE_DETAIL}")
     strikes = 0
 
     while True:
